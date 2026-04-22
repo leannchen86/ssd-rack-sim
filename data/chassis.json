@@ -1,0 +1,72 @@
+[
+  {
+    "id": "sata-2u-32bay",
+    "name": "2U 32-Bay SATA",
+    "formUnit": "2U",
+    "bays": 32,
+    "compatibleFormFactors": ["2.5\""],
+    "compatibleInterfaces": ["SATA III"],
+    "maxBandwidthGBs": 19.2,
+    "bandwidthNote": "4x SAS/SATA HBA at 4.8 GB/s each (theoretical)",
+    "realisticBandwidthRatio": 0.55,
+    "priceUSD": 4500,
+    "powerBaseW": 120,
+    "color": "#455a64"
+  },
+  {
+    "id": "nvme-2u-8bay-m2",
+    "name": "2U 8-Bay M.2 NVMe",
+    "formUnit": "2U",
+    "bays": 8,
+    "compatibleFormFactors": ["M.2 2280"],
+    "compatibleInterfaces": ["NVMe PCIe 5"],
+    "maxBandwidthGBs": 112,
+    "bandwidthNote": "PCIe 5.0 x4 per slot",
+    "realisticBandwidthRatio": 0.75,
+    "priceUSD": 8000,
+    "powerBaseW": 200,
+    "color": "#37474f"
+  },
+  {
+    "id": "nvme-2u-24bay-m2",
+    "name": "2U 24-Bay M.2 NVMe",
+    "formUnit": "2U",
+    "bays": 24,
+    "compatibleFormFactors": ["M.2 2280"],
+    "compatibleInterfaces": ["NVMe PCIe 5"],
+    "maxBandwidthGBs": 336,
+    "bandwidthNote": "PCIe 5.0 x4 per slot, dual CPU",
+    "realisticBandwidthRatio": 0.65,
+    "priceUSD": 18000,
+    "powerBaseW": 350,
+    "color": "#37474f"
+  },
+  {
+    "id": "u2-2u-24bay",
+    "name": "2U 24-Bay U.2 NVMe",
+    "formUnit": "2U",
+    "bays": 24,
+    "compatibleFormFactors": ["U.2"],
+    "compatibleInterfaces": ["NVMe PCIe 5"],
+    "maxBandwidthGBs": 336,
+    "bandwidthNote": "PCIe 5.0 x4 per slot",
+    "realisticBandwidthRatio": 0.70,
+    "priceUSD": 14000,
+    "powerBaseW": 300,
+    "color": "#546e7a"
+  },
+  {
+    "id": "e3s-2u-32bay",
+    "name": "2U 32-Bay E3.S NVMe",
+    "formUnit": "2U",
+    "bays": 32,
+    "compatibleFormFactors": ["E3.S"],
+    "compatibleInterfaces": ["NVMe PCIe 5"],
+    "maxBandwidthGBs": 448,
+    "bandwidthNote": "PCIe 5.0 x4 per slot, enterprise backplane",
+    "realisticBandwidthRatio": 0.70,
+    "priceUSD": 28000,
+    "powerBaseW": 400,
+    "color": "#263238"
+  }
+]

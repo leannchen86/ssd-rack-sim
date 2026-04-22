@@ -1,0 +1,277 @@
+[
+  {
+    "id": "dell-r740xd-legacy",
+    "name": "Dell PowerEdge R740xd",
+    "vendor": "Dell",
+    "formUnit": "2U",
+    "generation": "legacy",
+    "owned": true,
+    "cpu": "Intel Xeon Scalable Gen2",
+    "pcieGen": 3,
+    "totalPcieLanes": 96,
+    "bays": [
+      { "count": 24, "formFactor": "2.5\"", "interface": "SATA III", "lanesPerDrive": 0, "perDriveMaxMBs": 600, "hotSwap": true }
+    ],
+    "pcieSlotsRear": [
+      { "type": "x16", "gen": 3, "occupied": false },
+      { "type": "x16", "gen": 3, "occupied": false },
+      { "type": "x8", "gen": 3, "occupied": true, "note": "RAID controller" }
+    ],
+    "controllerMaxGBs": 4.0,
+    "maxBandwidthGBs": 4.0,
+    "realisticBandwidthRatio": 0.55,
+    "priceUSD": 0,
+    "priceNote": "Already owned",
+    "powerBaseW": 180,
+    "thermalDesign": "standard",
+    "notes": "Typical GI storage server. SATA-only backplane. 1× HBA Gen3 x8 (~4 GB/s controller limit)."
+  },
+  {
+    "id": "dell-r750xd-legacy",
+    "name": "Dell PowerEdge R750xd",
+    "vendor": "Dell",
+    "formUnit": "2U",
+    "generation": "legacy",
+    "owned": true,
+    "cpu": "Intel Xeon Scalable Gen3",
+    "pcieGen": 4,
+    "totalPcieLanes": 112,
+    "bays": [
+      { "count": 24, "formFactor": "2.5\"", "interface": "SATA III", "lanesPerDrive": 0, "perDriveMaxMBs": 600, "hotSwap": true }
+    ],
+    "pcieSlotsRear": [
+      { "type": "x16", "gen": 4, "occupied": false },
+      { "type": "x16", "gen": 4, "occupied": false },
+      { "type": "x8", "gen": 4, "occupied": true, "note": "RAID controller" }
+    ],
+    "controllerMaxGBs": 5.0,
+    "maxBandwidthGBs": 5.0,
+    "realisticBandwidthRatio": 0.55,
+    "priceUSD": 0,
+    "priceNote": "Already owned",
+    "powerBaseW": 200,
+    "thermalDesign": "standard",
+    "notes": "Gen4 PCIe but SATA backplane. AIC retrofit candidate. 1× HBA Gen4 x8 (~5 GB/s controller limit)."
+  },
+  {
+    "id": "dell-t620-legacy",
+    "name": "Dell PowerEdge T620",
+    "vendor": "Dell",
+    "formUnit": "Tower/5U",
+    "generation": "legacy",
+    "owned": true,
+    "cpu": "Intel Xeon E5-2600 v2",
+    "pcieGen": 3,
+    "totalPcieLanes": 80,
+    "bays": [
+      { "count": 32, "formFactor": "2.5\"", "interface": "SATA III", "lanesPerDrive": 0, "perDriveMaxMBs": 600, "hotSwap": true }
+    ],
+    "pcieSlotsRear": [
+      { "type": "x16", "gen": 3, "occupied": false },
+      { "type": "x8", "gen": 3, "occupied": true, "note": "HBA" }
+    ],
+    "controllerMaxGBs": 3.2,
+    "maxBandwidthGBs": 3.2,
+    "realisticBandwidthRatio": 0.50,
+    "priceUSD": 0,
+    "priceNote": "Already owned (amun3 — known backplane issues)",
+    "powerBaseW": 250,
+    "thermalDesign": "tower",
+    "notes": "Oldest in fleet. Backplane can't identify failed drives. amun3 is this model. 1× HBA Gen3 x8 (~3.2 GB/s effective with overhead)."
+  },
+  {
+    "id": "dell-t630-legacy",
+    "name": "Dell PowerEdge T630",
+    "vendor": "Dell",
+    "formUnit": "Tower/5U",
+    "generation": "legacy",
+    "owned": true,
+    "cpu": "Intel Xeon E5-2600 v4",
+    "pcieGen": 3,
+    "totalPcieLanes": 80,
+    "bays": [
+      { "count": 32, "formFactor": "2.5\"", "interface": "SATA III", "lanesPerDrive": 0, "perDriveMaxMBs": 600, "hotSwap": true }
+    ],
+    "pcieSlotsRear": [
+      { "type": "x16", "gen": 3, "occupied": false },
+      { "type": "x16", "gen": 3, "occupied": false },
+      { "type": "x8", "gen": 3, "occupied": true, "note": "HBA" }
+    ],
+    "controllerMaxGBs": 3.5,
+    "maxBandwidthGBs": 3.5,
+    "realisticBandwidthRatio": 0.52,
+    "priceUSD": 0,
+    "priceNote": "Already owned",
+    "powerBaseW": 240,
+    "thermalDesign": "tower",
+    "notes": "Better drive reporting than T620. Standard GI workhorse. 1× HBA Gen3 x8 (~3.5 GB/s effective)."
+  },
+  {
+    "id": "dell-r7725",
+    "name": "Dell PowerEdge R7725",
+    "vendor": "Dell",
+    "formUnit": "2U",
+    "generation": "current",
+    "owned": false,
+    "cpu": "AMD EPYC 9005 (dual)",
+    "pcieGen": 5,
+    "totalPcieLanes": 160,
+    "bays": [
+      { "count": 24, "formFactor": "2.5\"", "interface": "SATA III", "lanesPerDrive": 0, "perDriveMaxMBs": 600, "hotSwap": true }
+    ],
+    "bayConfigs": [
+      { "id": "sata-24", "name": "24× 2.5\" SATA", "bays": [{ "count": 24, "formFactor": "2.5\"", "interface": "SATA III", "lanesPerDrive": 0, "perDriveMaxMBs": 600, "hotSwap": true }] },
+      { "id": "sas-12", "name": "12× 3.5\" SAS/SATA", "bays": [{ "count": 12, "formFactor": "3.5\"", "interface": "SATA III", "lanesPerDrive": 0, "perDriveMaxMBs": 600, "hotSwap": true }] },
+      { "id": "hybrid-16-8", "name": "16× SATA + 8× U.2 NVMe", "bays": [{ "count": 16, "formFactor": "2.5\"", "interface": "SATA III", "lanesPerDrive": 0, "perDriveMaxMBs": 600, "hotSwap": true }, { "count": 8, "formFactor": "U.2", "interface": "NVMe PCIe 5", "lanesPerDrive": 4, "hotSwap": true }] },
+      { "id": "e3s-32", "name": "32× E3.S Gen5 (x2)", "bays": [{ "count": 32, "formFactor": "E3.S", "interface": "NVMe PCIe 5", "lanesPerDrive": 2, "hotSwap": true }] },
+      { "id": "e3s-40", "name": "40× E3.S Gen5 (x2)", "bays": [{ "count": 40, "formFactor": "E3.S", "interface": "NVMe PCIe 5", "lanesPerDrive": 2, "hotSwap": true }] }
+    ],
+    "pcieSlotsRear": [
+      { "type": "x16", "gen": 5, "occupied": false },
+      { "type": "x16", "gen": 5, "occupied": false },
+      { "type": "x16", "gen": 5, "occupied": false }
+    ],
+    "controllerMaxGBs": 5.0,
+    "maxBandwidthGBs": 19.2,
+    "maxBandwidthByConfig": {
+      "sata-24": 5.0,
+      "sas-12": 5.0,
+      "hybrid-16-8": 70,
+      "e3s-32": 224,
+      "e3s-40": 280
+    },
+    "realisticBandwidthRatio": 0.65,
+    "priceUSD": 15000,
+    "priceNote": "Base config, empty",
+    "powerBaseW": 300,
+    "maxDDR5TB": 6,
+    "thermalDesign": "enterprise-optimized",
+    "notes": "Swiss-army-knife 2U. Multiple bay configs. EPYC 9005 dual-socket, 160 PCIe Gen5 lanes, 6TB DDR5 max."
+  },
+  {
+    "id": "dell-r7725xd",
+    "name": "Dell PowerEdge R7725xd",
+    "vendor": "Dell",
+    "formUnit": "2U",
+    "generation": "current",
+    "owned": false,
+    "cpu": "AMD EPYC 9005 (dual)",
+    "pcieGen": 5,
+    "totalPcieLanes": 160,
+    "bays": [
+      { "count": 24, "formFactor": "U.2", "interface": "NVMe PCIe 5", "lanesPerDrive": 4, "hotSwap": true, "dedicatedLanes": true }
+    ],
+    "pcieSlotsRear": [
+      { "type": "x16", "gen": 5, "occupied": false },
+      { "type": "x16", "gen": 5, "occupied": false }
+    ],
+    "maxBandwidthGBs": 336,
+    "realisticBandwidthRatio": 0.70,
+    "priceUSD": 25000,
+    "priceNote": "Base config, empty. Purpose-built NVMe.",
+    "powerBaseW": 400,
+    "maxDDR5TB": 3,
+    "thermalDesign": "nvme-optimized",
+    "notes": "All-NVMe storage powerhouse. 24× U.2 Gen5 with dedicated x4 lanes (96 lanes to drives). 300+ GB/s sustained. DDR5 capped at 3TB (lanes reallocated to storage). StorageReview benchmark: 300 GB/s sustained."
+  },
+  {
+    "id": "sm-asg-2115s-ne332r",
+    "name": "Supermicro ASG-2115S-NE332R",
+    "vendor": "Supermicro",
+    "formUnit": "2U",
+    "generation": "current",
+    "owned": false,
+    "cpu": "AMD EPYC 9004/9005 (single)",
+    "pcieGen": 5,
+    "totalPcieLanes": 128,
+    "bays": [
+      { "count": 32, "formFactor": "E3.S", "interface": "NVMe PCIe 5", "lanesPerDrive": 2, "hotSwap": true, "note": "x2 lanes per drive (not x4) — still 7 GB/s per drive" }
+    ],
+    "pcieSlotsRear": [
+      { "type": "x16", "gen": 5, "occupied": false },
+      { "type": "x16", "gen": 5, "occupied": false }
+    ],
+    "maxBandwidthGBs": 224,
+    "realisticBandwidthRatio": 0.70,
+    "priceUSD": 20000,
+    "priceNote": "15-25% cheaper than Dell equivalent",
+    "powerBaseW": 350,
+    "thermalDesign": "nvme-optimized",
+    "notes": "32× E3.S at x2 lanes each. Single-socket EPYC. For read-heavy serving, x2 (7 GB/s/drive) is 14x faster than SATA."
+  },
+  {
+    "id": "sm-ssg-122b-ne316r",
+    "name": "Supermicro SSG-122B-NE316R",
+    "vendor": "Supermicro",
+    "formUnit": "1U",
+    "generation": "current",
+    "owned": false,
+    "cpu": "AMD EPYC 9004/9005 (single)",
+    "pcieGen": 5,
+    "totalPcieLanes": 128,
+    "bays": [
+      { "count": 16, "formFactor": "E3.S", "interface": "NVMe PCIe 5", "lanesPerDrive": 4, "hotSwap": true }
+    ],
+    "pcieSlotsRear": [
+      { "type": "x16", "gen": 5, "occupied": false }
+    ],
+    "maxBandwidthGBs": 224,
+    "realisticBandwidthRatio": 0.75,
+    "priceUSD": 16000,
+    "priceNote": "1U, half drives but full x4 lanes per drive",
+    "powerBaseW": 250,
+    "thermalDesign": "nvme-optimized",
+    "notes": "1U with 16× E3.S at full x4 lanes. Half the rack space, half the drives."
+  },
+  {
+    "id": "sm-asg-1115s-ne316r",
+    "name": "Supermicro ASG-1115S-NE316R",
+    "vendor": "Supermicro",
+    "formUnit": "1U",
+    "generation": "current",
+    "owned": false,
+    "cpu": "AMD EPYC 9004 (single)",
+    "pcieGen": 5,
+    "totalPcieLanes": 128,
+    "bays": [
+      { "count": 16, "formFactor": "E3.S", "interface": "NVMe PCIe 5", "lanesPerDrive": 4, "hotSwap": true }
+    ],
+    "pcieSlotsRear": [
+      { "type": "x16", "gen": 5, "occupied": false }
+    ],
+    "maxBandwidthGBs": 224,
+    "realisticBandwidthRatio": 0.75,
+    "priceUSD": 15000,
+    "priceNote": "Budget 1U NVMe option",
+    "powerBaseW": 220,
+    "thermalDesign": "nvme-optimized",
+    "notes": "1U, single-socket EPYC 9004, 16× E3.S x4. StorageReview: 'efficiently laid out'."
+  },
+  {
+    "id": "sm-ssg-641e-e1cr36l",
+    "name": "Supermicro SSG-641E-E1CR36L",
+    "vendor": "Supermicro",
+    "formUnit": "4U",
+    "generation": "current",
+    "owned": false,
+    "cpu": "Intel Xeon Scalable Gen4",
+    "pcieGen": 4,
+    "totalPcieLanes": 80,
+    "bays": [
+      { "count": 36, "formFactor": "3.5\"", "interface": "SATA III", "lanesPerDrive": 0, "perDriveMaxMBs": 600, "hotSwap": true }
+    ],
+    "pcieSlotsRear": [
+      { "type": "x16", "gen": 4, "occupied": false },
+      { "type": "x8", "gen": 4, "occupied": true, "note": "HBA 1" },
+      { "type": "x8", "gen": 4, "occupied": true, "note": "HBA 2" }
+    ],
+    "controllerMaxGBs": 8.0,
+    "maxBandwidthGBs": 8.0,
+    "realisticBandwidthRatio": 0.55,
+    "priceUSD": 12000,
+    "priceNote": "Budget bulk SATA storage",
+    "powerBaseW": 350,
+    "thermalDesign": "standard",
+    "notes": "4U, 36× 3.5\"/2.5\" SAS/SATA. Maximum SATA density. 2× HBAs Gen4 x8 (~8 GB/s combined controller limit)."
+  }
+]

@@ -1,0 +1,156 @@
+[
+  {
+    "id": "gi-bulk",
+    "name": "GI Bulk Storage",
+    "icon": "db",
+    "description": "Web crawl index storage. High capacity, sequential writes during crawl, periodic reads. Dominant metric: $/TB.",
+    "examples": ["choi8", "venus", "smith04"],
+    "requirements": {
+      "minUsableTB": 80,
+      "minSeqWriteGBs": 1.0,
+      "minRandomReadIOPS": 50000,
+      "minDWPD": 0.1,
+      "preferredRaid": "RAID10",
+      "raidNote": "Trending toward RAID10 for newer builds — RAID5 rebuild pain was significant"
+    },
+    "priorities": {
+      "costPerTB": "critical",
+      "capacity": "critical",
+      "seqRead": "moderate",
+      "seqWrite": "moderate",
+      "randomRead": "low",
+      "randomWrite": "low",
+      "endurance": "low",
+      "latency": "low"
+    },
+    "insights": [
+      "GI workload is capacity-dominated — $/TB matters more than IOPS",
+      "Sequential write during crawl is the main I/O pattern, not random",
+      "Consumer TLC is acceptable — Diffbot has run Samsung EVOs for years",
+      "Drew: 'we don't need industrial for that cost'",
+      "NVMe speeds are wasted on this workload — the bottleneck is network and CPU, not disk",
+      "RAID5 gives ~30% more usable capacity but RAID10 rebuilds are much safer"
+    ],
+    "antiPatterns": [
+      { "condition": "hasU2Drives", "message": "Drew has said they won't use U.2 for GI — 'we only own 5 machines that can even take a U.2, and likely will never use them for GI'" },
+      { "condition": "hasE3SDrives", "message": "E3.S is 12% more $/TB than U.2 with no adapters. Not cost-justified for bulk storage." },
+      { "condition": "qlcDrives", "message": "QLC rejected — Drew: 'QVO — we don't want those, performance issues.'" },
+      { "condition": "industrialDrives", "message": "Industrial-grade drives are 3x cost premium. Drew rejected these for GI." }
+    ]
+  },
+  {
+    "id": "websearch-serving",
+    "name": "Websearch Serving",
+    "icon": "search",
+    "description": "Query-serving layer reading from index. Low-latency random reads critical. Dominant metric: random read IOPS.",
+    "examples": ["odin", "zeus"],
+    "requirements": {
+      "minUsableTB": 4,
+      "maxUsableTB": 16,
+      "minSeqWriteGBs": 0.5,
+      "minRandomReadIOPS": 500000,
+      "minDWPD": 0.3,
+      "preferredRaid": "RAID10"
+    },
+    "priorities": {
+      "costPerTB": "low",
+      "capacity": "low",
+      "seqRead": "moderate",
+      "seqWrite": "low",
+      "randomRead": "critical",
+      "randomWrite": "low",
+      "endurance": "moderate",
+      "latency": "critical"
+    },
+    "insights": [
+      "Mike: 'websearch mainly uses CPU + gen5 nvme'",
+      "This is where NVMe price parity changes everything — if 4TB SATA ≈ 4TB NVMe, new serving boxes should be NVMe-first",
+      "One NVMe box may replace 3 SATA boxes due to IOPS advantage — TCO comparison isn't drive-vs-drive",
+      "p99 latency matters more than throughput",
+      "Capacity needs are modest (4-16TB) — don't overbuild"
+    ],
+    "antiPatterns": [
+      { "condition": "allSATA", "message": "SATA drives cap at ~98K random read IOPS — websearch needs 500K+. NVMe is 10-20x faster for random reads." },
+      { "condition": "overCapacity", "message": "Websearch needs 4-16TB. Building 80+TB for websearch is wasting money on unneeded capacity." }
+    ]
+  },
+  {
+    "id": "kg-couchbase",
+    "name": "Knowledge Graph / Couchbase",
+    "icon": "graph",
+    "description": "Structured entity data, mixed read/write. Similar to GI but smaller scale. Dominant metric: mixed performance.",
+    "examples": [],
+    "requirements": {
+      "minUsableTB": 20,
+      "maxUsableTB": 60,
+      "minSeqWriteGBs": 1.0,
+      "minRandomReadIOPS": 200000,
+      "minDWPD": 0.5,
+      "preferredRaid": "RAID10"
+    },
+    "priorities": {
+      "costPerTB": "moderate",
+      "capacity": "moderate",
+      "seqRead": "moderate",
+      "seqWrite": "moderate",
+      "randomRead": "high",
+      "randomWrite": "high",
+      "endurance": "moderate",
+      "latency": "moderate"
+    },
+    "insights": [
+      "Mixed read/write workload — needs balanced performance",
+      "Smaller than GI but needs better random I/O",
+      "NVMe would help but isn't as critical as for websearch"
+    ],
+    "antiPatterns": []
+  },
+  {
+    "id": "llm-finetune",
+    "name": "LLM Fine-tuning (aiDAPTIV+)",
+    "icon": "brain",
+    "description": "Specialized: SLC SSDs as extended GPU memory for training. Layer swapping writes multiple TB/hour. Not general storage.",
+    "examples": [],
+    "specialized": true,
+    "requirements": {
+      "minUsableTB": 2,
+      "maxUsableTB": 8,
+      "minSeqWriteGBs": 10,
+      "minRandomReadIOPS": 1000000,
+      "minDWPD": 50,
+      "requiresSLC": true,
+      "requiresMiddleware": true,
+      "requiresGPU": true,
+      "preferredRaid": "JBOD",
+      "raidNote": "aiDAPTIV+ manages its own data placement — no traditional RAID"
+    },
+    "priorities": {
+      "costPerTB": "low",
+      "capacity": "low",
+      "seqRead": "critical",
+      "seqWrite": "critical",
+      "randomRead": "critical",
+      "randomWrite": "critical",
+      "endurance": "critical",
+      "latency": "critical"
+    },
+    "insights": [
+      "This is NOT general storage — it's GPU VRAM extension for LLM training",
+      "Every layer swap during training is a write — a 70B model session can write multiple TB/hour",
+      "Requires Phison aiDAPTIV+ middleware with PyTorch/TensorFlow integration",
+      "Requires compatible GPUs (e.g., RTX 6000 Ada × 4)",
+      "Requires dual-socket server with ≥ 2 Gen5 x16 slots",
+      "SLC drives (100 DWPD) are 3x price/TB but justified by endurance requirements"
+    ],
+    "antiPatterns": [
+      { "condition": "tlcDrives", "message": "TLC drives have 0.1-1 DWPD — aiDAPTIV+ needs 50+ DWPD. SLC is required." },
+      { "condition": "noGPU", "message": "LLM fine-tuning requires GPUs. This is a specialized compute+storage config." }
+    ],
+    "specialConfig": {
+      "requiredMiddlewareLicense": 5000,
+      "requiredGPUs": { "min": 2, "max": 8, "example": "RTX 6000 Ada" },
+      "requiredDriveType": "SLC",
+      "requiredMinDWPD": 50
+    }
+  }
+]

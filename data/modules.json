@@ -1,0 +1,47 @@
+[
+  {
+    "id": "apex-x16-gen5",
+    "name": "Apex Storage X16 Gen5",
+    "type": "aic",
+    "description": "PCIe add-in card with 16× M.2 NVMe slots (8 front, 8 back)",
+    "vendor": "Apex Storage",
+    "requires": {
+      "slotType": "x16",
+      "minPcieGen": 3,
+      "optimalPcieGen": 5
+    },
+    "provides": {
+      "count": 16,
+      "formFactor": "M.2 2280",
+      "interface": "NVMe PCIe 5",
+      "hotSwap": false
+    },
+    "switchChip": "Microchip Switchtec PFX 84xG5 PM50084",
+    "onboardRaid": false,
+    "raidNote": "No onboard RAID — use software mdadm RAID10/RAID5",
+    "bifurcationRequired": false,
+    "bifurcationNote": "Card has its own PCIe switch, no motherboard bifurcation needed",
+    "maxCapacityTB": 128,
+    "maxSeqReadGBs": 56,
+    "maxSeqWriteGBs": 54,
+    "maxRandom4KReadIOPS": 20000000,
+    "thermalLoadW": 100,
+    "thermalNote": "80-120W heat load in a PCIe slot. Chassis not designed for it — expect throttling without fan shroud.",
+    "priceUSD": 3000,
+    "priceNote": "~$2,500-3,500 estimated (Gen4 X16 is $1,800, Gen4 X21 is $2,800)",
+    "performanceByHostGen": {
+      "3": { "maxGBs": 16, "note": "Gen3 x16 ceiling — 25% of rated performance" },
+      "4": { "maxGBs": 32, "note": "Gen4 x16 ceiling — 50% of rated performance" },
+      "5": { "maxGBs": 56, "note": "Full Gen5 x16 — rated performance" }
+    },
+    "caveats": [
+      "No hot-swap — server must be powered down to replace M.2 drives",
+      "PCIe lane contention — consumes a full x16 slot from the server's lane budget",
+      "Thermal: 80-120W of heat in chassis not designed for it",
+      "No RAID on card — use software mdadm",
+      "Existing legacy fleet has Gen3 slots — card runs at 25% rated speed",
+      "Upgrade bridge, not a long-term architecture"
+    ],
+    "whyRecommended": "Cheapest path to Gen5 NVMe in existing SATA boxes without forklift server replacement. For ~$3k you get 64TB usable NVMe capacity vs $25k for a new R7725xd."
+  }
+]

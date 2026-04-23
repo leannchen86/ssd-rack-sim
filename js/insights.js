@@ -128,16 +128,23 @@ export function generateInsights(state, stats, workload) {
   }
 
   // === SATA vs NVMe PRICE PARITY ===
+  // Compute from catalog (priced drives only), not hardcoded
+  const pricedDrives = state.drives.filter(d => d.priceUSD > 0);
+  const sataConsumer = pricedDrives.filter(d => d.interface === 'SATA III' && d.category === 'consumer');
+  const nvmeConsumer = pricedDrives.filter(d => d.interface.startsWith('NVMe') && d.category === 'consumer' && d.formFactor.startsWith('M.2'));
   const satadrives = drives.filter(d => d.interface === 'SATA III');
-  const nvmedrives = drives.filter(d => d.interface.startsWith('NVMe'));
-  if (satadrives.length > 0) {
-    const sataCostPerTB = satadrives.reduce((s, d) => s + d.priceUSD, 0) / satadrives.reduce((s, d) => s + d.capacityTB, 0);
-    // Check if NVMe has reached parity
+  const pricedSataInConfig = satadrives.filter(d => d.priceUSD > 0);
+
+  if (pricedSataInConfig.length > 0 && sataConsumer.length > 0 && nvmeConsumer.length > 0) {
+    const sataCatalogCostPerTB = sataConsumer.reduce((s, d) => s + d.priceUSD, 0) / sataConsumer.reduce((s, d) => s + d.capacityTB, 0);
+    const nvmeCatalogCostPerTB = nvmeConsumer.reduce((s, d) => s + d.priceUSD, 0) / nvmeConsumer.reduce((s, d) => s + d.capacityTB, 0);
+    const ratio = nvmeCatalogCostPerTB / sataCatalogCostPerTB;
+    const verdict = ratio <= 1.15 ? 'reached parity' : ratio <= 1.5 ? 'approaching parity' : 'still a premium';
     insights.push({
       severity: 'info',
       category: 'Market',
-      title: 'SATA-NVMe price parity reached',
-      message: `Consumer 4TB SATA ($${sataCostPerTB.toFixed(0)}/TB) ≈ 4TB NVMe M.2 ($~198/TB). For new builds, NVMe offers 25x the bandwidth at similar cost. Existing SATA servers still can't use NVMe without chassis replacement.`,
+      title: `SATA vs NVMe pricing: NVMe ${verdict}`,
+      message: `Consumer SATA: $${sataCatalogCostPerTB.toFixed(0)}/TB · Consumer NVMe M.2: $${nvmeCatalogCostPerTB.toFixed(0)}/TB (${ratio.toFixed(2)}x). For new builds, NVMe offers ~25x bandwidth at ${ratio <= 1.2 ? 'similar' : 'modestly higher'} cost. Existing SATA servers still can't use NVMe without chassis replacement.`,
     });
   }
 
@@ -190,9 +197,9 @@ export function generateInsights(state, stats, workload) {
       }
 
       // Cost comparison with new chassis
-      const aicTotalCost = mod.priceUSD + (server.priceUSD || 0);
+      const aicTotalCost = (mod.priceUSD || 0) + (server.priceUSD || 0);
       const newChassisCost = 25000; // R7725xd baseline
-      if (aicTotalCost < newChassisCost * 0.5) {
+      if (mod.priceUSD && aicTotalCost < newChassisCost * 0.5) {
         insights.push({
           severity: 'info',
           category: 'AIC Retrofit',
@@ -212,12 +219,20 @@ export function generateInsights(state, stats, workload) {
   }
 
   // === SUPPLY CHAIN ===
-  if (stats.supplyRiskScore >= 60) {
+  // Worst-case: any high-risk drive compromises the whole array
+  if (stats.highRiskCount > 0) {
     insights.push({
       severity: 'warning',
       category: 'Supply Chain',
-      title: 'High supply risk',
-      message: `Average supply risk score: ${stats.supplyRiskScore.toFixed(0)}/100. Multiple drives in this config have constrained supply chains.`,
+      title: `${stats.highRiskCount} high-risk drive${stats.highRiskCount > 1 ? 's' : ''} in config`,
+      message: `Worst-case supply risk score: ${stats.supplyRiskScore.toFixed(0)}/100. Failure of any of these ${stats.highRiskCount} drive${stats.highRiskCount > 1 ? 's' : ''} may be hard to replace with the same SKU — plan for substitution or spares on hand.`,
+    });
+  } else if (stats.supplyRiskScore >= 40) {
+    insights.push({
+      severity: 'suggestion',
+      category: 'Supply Chain',
+      title: 'Medium supply risk drives present',
+      message: `Worst-case supply risk score: ${stats.supplyRiskScore.toFixed(0)}/100. Some drives have constrained supply. Consider keeping spares.`,
     });
   }
 

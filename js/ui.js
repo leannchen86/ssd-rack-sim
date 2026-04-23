@@ -389,9 +389,10 @@ export class UI {
           <div class="stat-sub text-gray-500">${stats.rawTB.toFixed(1)} TB raw</div>
         </div>
         <div class="stat-group">
-          <div class="stat-label">TOTAL COST</div>
-          <div class="stat-value">$${stats.totalCost.toLocaleString()}</div>
-          <div class="stat-sub text-gray-500">$${stats.costPerUsableTB.toFixed(0)}/TB · $${stats.costPerUsableTBYear5.toFixed(0)}/TB·yr</div>
+          <div class="stat-label">TOTAL COST${stats.priceIncomplete ? ' <span class="text-yellow-500">⚠</span>' : ''}</div>
+          <div class="stat-value">$${stats.totalCost.toLocaleString()}${stats.priceIncomplete ? '<span class="text-yellow-500 text-sm">+?</span>' : ''}</div>
+          <div class="stat-sub text-gray-500" title="Amortized: drives 3.5yr, chassis/AIC 5yr">$${stats.costPerUsableTB.toFixed(0)}/TB · $${stats.costPerUsableTBYear5.toFixed(0)}/TB·yr*</div>
+          ${stats.priceIncomplete ? `<div class="stat-sub text-yellow-500">${stats.unpricedDrives} drive${stats.unpricedDrives > 1 ? 's' : ''} unpriced — totals are lower bound</div>` : ''}
         </div>
         <div class="stat-group">
           <div class="stat-label">SEQ READ</div>

@@ -154,7 +154,17 @@ export function computeStats(state) {
   const moduleCost = state.modules.reduce((s, m) => s + (m.priceUSD || 0), 0);
   const totalCost = driveCost + chassisCost + moduleCost;
   const costPerUsableTB = usableTB > 0 ? totalCost / usableTB : 0;
-  const costPerUsableTBYear5 = usableTB > 0 ? totalCost / usableTB / 5 : 0;
+
+  // TCO amortization — drives have shorter replacement cycle than chassis
+  // Drives: 3.5yr (warranty-aligned), chassis + AIC: 5yr
+  const DRIVE_AMORT_YEARS = 3.5;
+  const CHASSIS_AMORT_YEARS = 5;
+  const annualCost = (driveCost / DRIVE_AMORT_YEARS) + ((chassisCost + moduleCost) / CHASSIS_AMORT_YEARS);
+  const costPerUsableTBYear5 = usableTB > 0 ? annualCost / usableTB : 0;
+
+  // Price completeness — count drives with priceUSD === 0 (TBD)
+  const unpricedDrives = filled.filter(b => !b.drive.priceUSD).length;
+  const priceIncomplete = unpricedDrives > 0;
 
   // Bandwidth — compute per source
   // Chassis bays use server bandwidth limits
@@ -253,9 +263,11 @@ export function computeStats(state) {
     rebuildDegraded = true; // Array is vulnerable during entire rebuild
   }
 
-  // Supply risk
+  // Supply risk — worst-case, not averaged
+  // A single high-risk drive compromises the whole array (any failure requires that SKU)
   const riskMap = { low: 10, medium: 40, high: 80 };
-  const supplyRiskScore = filled.reduce((s, b) => s + (riskMap[b.drive.supplyRisk] || 50), 0) / driveCount;
+  const supplyRiskScore = filled.reduce((s, b) => Math.max(s, riskMap[b.drive.supplyRisk] || 50), 0);
+  const highRiskCount = filled.filter(b => b.drive.supplyRisk === 'high').length;
 
   // Vendor concentration
   const vendorConcentration = {};
@@ -277,8 +289,9 @@ export function computeStats(state) {
     realisticReadGBs, realisticWriteGBs,
     chassisMaxBWGBs: chassisMaxBW,
     busSaturated, totalPowerW, rebuildTimeHours, rebuildDegraded, rebuildWarning,
-    raidValid, raidError, supplyRiskScore,
+    raidValid, raidError, supplyRiskScore, highRiskCount,
     vendorConcentration, nandVendorConcentration,
     chassisBays, moduleBays,
+    unpricedDrives, priceIncomplete,
   };
 }

@@ -4,7 +4,11 @@ Interactive single-page web app for visualizing SSD procurement decisions in dat
 
 Built to help infrastructure engineers understand the tradeoffs between SATA vs NVMe, consumer vs enterprise, QLC vs TLC, and legacy fleet vs new hardware — without spreadsheets.
 
+**🔗 Live demo: [leannchen86.github.io/ssd-rack-sim](https://leannchen86.github.io/ssd-rack-sim/)**
+
 ## Quick Start
+
+Run locally from the project root:
 
 ```bash
 python3 -m http.server 8080
@@ -86,14 +90,23 @@ data/
 
 ## Known Limitations
 
-These are documented critique points from accuracy audits:
+These are documented critique points from accuracy audits. The simulator is a pedagogical tool, not a procurement engine — some behaviors are simplified or still being improved.
 
-- No SLC cache exhaustion or thermal throttle modeling — drives show peak specs only
-- PCIe lane budget not enforced (AIC + NVMe bays can oversubscribe lanes)
-- Supply risk uses averaging instead of worst-case across the array
-- TCO amortization is flat 5-year (should be 3.5yr for drives, 5yr for chassis)
-- No hot/cold data tiering support
+**Still to fix:**
+- No SLC cache exhaustion, thermal throttle, or NAND aging modeling — drives show peak specs only; real sustained writes drop 3-10x after cache fills
+- PCIe lane budget not enforced (AIC + NVMe bays can oversubscribe host lanes)
+- No hot/cold data tiering support (can't express "100TB QLC cold + 4TB TLC hot" architectures)
+- LLM fine-tuning DWPD threshold may be understated for sustained training workloads
 - Some drives in the catalog may have inaccurate specs (e.g., Inland QN446 4TB Gen5 variant may not exist as described)
+
+**Already addressed:**
+- ✓ RAID write penalty applied to bandwidth calculations (RAID5 = 25%, RAID10 = 50%)
+- ✓ SATA bandwidth modeled as per-drive dedicated links capped by HBA controller (not shared bus)
+- ✓ Rebuild time varies by RAID mode (RAID10 mirror-pair vs RAID5 whole-array degradation)
+- ✓ Supply risk uses worst-case across the array (not averaged)
+- ✓ TCO amortization split: drives 3.5yr, chassis/AIC 5yr
+- ✓ NVMe price parity computed from catalog (not hardcoded)
+- ✓ Unpriced drives flagged in stats panel so totals aren't misleading
 
 ## License
 

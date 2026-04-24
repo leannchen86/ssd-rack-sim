@@ -38,7 +38,7 @@ Open [http://localhost:8080](http://localhost:8080). No build step, no dependenc
 
 | Category | Count | Details |
 |----------|-------|---------|
-| Drives | 25 | 20 with Phison controllers. Pascari SA50/SA53P enterprise SATA, consumer/flagship NVMe (E28, E31T), Samsung, aiDAPTIV+ AI SLC |
+| Drives | 12 | Consumer/flagship NVMe (E28, E31T), Samsung enterprise U.2, budget SATA, industrial SATA |
 | Servers | 10 | Dell T620/T630/R740xd/R750xd (owned), R7725 (5 bay configs), R7725xd, Supermicro ASG/SSG |
 | Workloads | 4 | GI Bulk, Websearch, KG/Couchbase, LLM Fine-tuning |
 | Controllers | 11 | Phison S11 through X2, Samsung MKX/Pascal, Silicon Motion SM2259 |
@@ -48,10 +48,8 @@ Open [http://localhost:8080](http://localhost:8080). No build step, no dependenc
 
 All drive prices include a `priceSource` field documenting where the price came from. Drives without verified pricing show **"Price TBD"** in the UI rather than estimates. Current sourcing:
 
-- **Phison sales quotes** — Pascari SA53P series (April 2026)
-- **Distributor listings** — Pascari SA50 series (esaitech/DNL Trading 2025)
 - **Official retail** — Samsung, Corsair, Crucial, Kingston (retailer prices as of early 2026)
-- **TBD** — Enterprise NVMe (X201/D201/D205V), industrial, and specialized drives with no public pricing
+- **TBD** — Industrial and specialized drives with no public pricing
 
 ## Architecture
 
@@ -64,7 +62,7 @@ js/
   insights.js       Reasoning engine: workload fit, anti-patterns, tradeoff analysis
   app.js            Glue: loads JSON data, wires events, runs render loop
 data/
-  drives.json       Drive catalog (25 SSDs with full specs)
+  drives.json       Drive catalog (12 SSDs with full specs)
   servers.json      Server catalog (bay configs, PCIe lanes, bandwidth limits)
   controllers.json  SSD controller specs (Phison, Samsung, Silicon Motion)
   modules.json      PCIe add-in cards (Apex X16 Gen5)

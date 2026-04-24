@@ -26,7 +26,7 @@ Then open http://localhost:8080
 - `js/ui.js` — DOM panels (server/workload/RAID selectors, drive palette, stats, fitness, insights)
 - `js/insights.js` — reasoning engine: generates contextual tradeoff analysis
 - `js/app.js` — glue: loads data, wires events, runs render loop
-- `data/drives.json` — drive catalog (25 drives incl. Pascari SA50/SA53P enterprise SATA, consumer/flagship NVMe, industrial, AI)
+- `data/drives.json` — drive catalog (12 drives: consumer/flagship NVMe, Samsung enterprise U.2, budget SATA, industrial)
 - `data/controllers.json` — SSD controller catalog (Phison, Samsung, Silicon Motion)
 - `data/servers.json` — server catalog (legacy owned fleet + new Dell/Supermicro)
 - `data/modules.json` — PCIe add-in cards (Apex X16 Gen5)

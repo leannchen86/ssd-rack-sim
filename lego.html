@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SSD Lego Sandbox</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body {
+    background: linear-gradient(180deg, #fdf6e3 0%, #f5e6c8 100%);
+    font-family: 'Trebuchet MS', sans-serif;
+  }
+  .stage {
+    background-image:
+      radial-gradient(circle at 8px 8px, rgba(0,0,0,0.06) 2px, transparent 2px);
+    background-size: 16px 16px;
+  }
+
+  /* --- Brick --- */
+  .brick {
+    position: relative;
+    border-radius: 6px;
+    box-shadow:
+      inset 0 -6px 0 rgba(0,0,0,0.18),
+      inset 0 2px 0 rgba(255,255,255,0.35),
+      0 6px 0 rgba(0,0,0,0.15),
+      0 10px 18px rgba(0,0,0,0.20);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+    display: grid;
+    padding: 12px;
+    gap: 8px;
+  }
+  .brick:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      inset 0 -6px 0 rgba(0,0,0,0.18),
+      inset 0 2px 0 rgba(255,255,255,0.35),
+      0 10px 0 rgba(0,0,0,0.15),
+      0 16px 24px rgba(0,0,0,0.25);
+  }
+  .brick.selected {
+    outline: 4px solid #111;
+    outline-offset: 4px;
+  }
+
+  /* --- Stud (the bump on top) --- */
+  .stud {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at 35% 30%,
+      rgba(255,255,255,0.6) 0%,
+      rgba(255,255,255,0.1) 40%,
+      rgba(0,0,0,0.0) 60%
+    );
+    box-shadow:
+      inset 0 -3px 0 rgba(0,0,0,0.25),
+      inset 0 2px 0 rgba(255,255,255,0.45),
+      0 2px 2px rgba(0,0,0,0.15);
+    position: relative;
+  }
+  .stud::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+
+  /* Color families per interface (the brick body inherits these via CSS vars) */
+  .iface-sata    { --brick-color: #90a4ae; --brick-dark: #607d8b; }
+  .iface-gen4    { --brick-color: #5c7cfa; --brick-dark: #364fc7; }
+  .iface-gen5    { --brick-color: #fcc419; --brick-dark: #f08c00; }
+
+  .brick-body {
+    background:
+      linear-gradient(180deg, var(--brick-color) 0%, var(--brick-dark) 100%);
+  }
+  .stud {
+    background-color: var(--brick-color);
+  }
+
+  /* Vendor label on the side of the brick */
+  .vendor-tag {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: rgba(0,0,0,0.55);
+    text-transform: uppercase;
+    text-align: center;
+  }
+  .capacity-tag {
+    font-family: 'Trebuchet MS', sans-serif;
+    font-weight: bold;
+    font-size: 22px;
+    color: rgba(0,0,0,0.7);
+    text-align: center;
+    line-height: 1;
+  }
+
+  /* Side panel slide-in */
+  #panel {
+    transition: transform 0.25s ease;
+  }
+  #panel.hidden-panel {
+    transform: translateX(110%);
+  }
+
+  /* --- Baseplate --- */
+  .baseplate {
+    position: relative;
+    background-color: #66bb52;
+    background-image:
+      radial-gradient(circle at 18px 18px,
+        #4a9c3a 0px, #4a9c3a 11px,
+        transparent 12px),
+      radial-gradient(circle at 18px 18px,
+        rgba(255,255,255,0.35) 0px, rgba(255,255,255,0.35) 6px,
+        transparent 7px);
+    background-size: 36px 36px;
+    border-radius: 10px;
+    box-shadow:
+      inset 0 4px 0 rgba(255,255,255,0.18),
+      inset 0 -6px 0 rgba(0,0,0,0.25),
+      0 8px 24px rgba(0,0,0,0.25);
+    overflow: hidden;
+  }
+
+  /* Bricks placed on the baseplate are absolutely positioned */
+  .placed {
+    position: absolute;
+    z-index: 5;
+  }
+
+  /* A ghost clone follows the cursor while dragging */
+  .drag-ghost {
+    position: fixed;
+    pointer-events: none;
+    opacity: 0.85;
+    z-index: 1000;
+    transform: scale(1.05);
+  }
+
+  /* Hint when dragging over the baseplate */
+  .baseplate.drag-over {
+    box-shadow:
+      inset 0 0 0 4px rgba(255,255,255,0.6),
+      inset 0 4px 0 rgba(255,255,255,0.18),
+      inset 0 -6px 0 rgba(0,0,0,0.25),
+      0 8px 24px rgba(0,0,0,0.25);
+  }
+
+  /* Filter chips */
+  .chip {
+    border: 2px solid #333;
+    background: #fff;
+    border-radius: 999px;
+    padding: 4px 14px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 2px 0 #333;
+    transition: transform 0.1s ease;
+  }
+  .chip:hover { transform: translateY(-1px); }
+  .chip.active { background: #333; color: #fff; }
+</style>
+</head>
+
+<body class="min-h-screen">
+  <div class="max-w-7xl mx-auto px-6 py-8">
+    <header class="mb-6">
+      <h1 class="text-4xl font-black tracking-tight" style="color:#222;">
+        SSD Lego Sandbox
+      </h1>
+      <p class="text-sm text-gray-700 mt-2">
+        Every drive on the market as a brick. Click one to peek inside.
+        <span class="text-gray-500">·
+          <a href="index.html" class="underline">switch to rack sim →</a>
+        </span>
+      </p>
+    </header>
+
+    <!-- Filters -->
+    <div id="filters" class="flex flex-wrap gap-2 mb-6"></div>
+
+    <!-- Baseplate (drop zone) -->
+    <section class="mb-8">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-lg font-bold tracking-tight" style="color:#333;">
+          Your Build
+        </h2>
+        <div class="flex gap-2 items-center">
+          <span id="placedCount" class="text-xs text-gray-600">0 bricks placed</span>
+          <button id="clearBtn" class="chip" title="Remove all bricks">Clear</button>
+        </div>
+      </div>
+      <div id="baseplate" class="baseplate" style="height: 360px;"></div>
+      <div class="text-xs text-gray-500 mt-2">
+        Drag any brick onto the baseplate. Drag a placed brick off to remove it.
+        Double-click a placed brick to inspect.
+      </div>
+    </section>
+
+    <!-- Brick gallery -->
+    <section>
+      <h2 class="text-lg font-bold tracking-tight mb-2" style="color:#333;">
+        Brick Library
+      </h2>
+      <main id="stage" class="stage rounded-xl p-8 min-h-[400px]
+        grid gap-8" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+      </main>
+    </section>
+  </div>
+
+  <!-- Detail side panel -->
+  <aside id="panel"
+    class="hidden-panel fixed top-0 right-0 h-full w-[380px] bg-white shadow-2xl
+           border-l-4 border-black p-6 overflow-y-auto z-50">
+    <button id="closeBtn"
+      class="absolute top-4 right-4 w-8 h-8 rounded-full bg-black text-white font-bold">×</button>
+    <div id="panelBody"></div>
+  </aside>
+
+<script type="module">
+  // ---------- 1. Brick geometry per form factor ----------
+  // Returns { cols, rows } of studs and overall brick "feel"
+  function geometry(drive) {
+    const cap = drive.capacityTB;
+    const ff = drive.formFactor;
+
+    // Stud count scales with capacity, min 2 per axis
+    const totalStuds = Math.max(2, Math.round(cap * 1.5));
+
+    if (ff === 'M.2 2280') {
+      // Long & thin: 1 row of studs
+      return { cols: Math.min(8, Math.max(3, Math.round(cap * 1.5))), rows: 1, chunky: false };
+    }
+    if (ff === 'U.2') {
+      // Chunky cube: 2x2 or 3x3 grid, taller
+      const side = cap >= 4 ? 3 : 2;
+      return { cols: side, rows: side, chunky: true };
+    }
+    // 2.5" plate: wider grid
+    const cols = cap >= 4 ? 4 : 3;
+    const rows = 2;
+    return { cols, rows, chunky: false };
+  }
+
+  function ifaceClass(iface) {
+    if (iface.startsWith('SATA')) return 'iface-sata';
+    if (iface.includes('PCIe 5')) return 'iface-gen5';
+    if (iface.includes('PCIe 4')) return 'iface-gen4';
+    return 'iface-sata';
+  }
+
+  function ifaceLabel(iface) {
+    if (iface.startsWith('SATA')) return 'SATA';
+    if (iface.includes('PCIe 5')) return 'Gen5';
+    if (iface.includes('PCIe 4')) return 'Gen4';
+    return iface;
+  }
+
+  // ---------- 2. Render one brick ----------
+  function renderBrick(drive) {
+    const { cols, rows, chunky } = geometry(drive);
+
+    const brick = document.createElement('div');
+    brick.className = `brick brick-body ${ifaceClass(drive.interface)}`;
+    brick.dataset.id = drive.id;
+    brick.dataset.driveId = drive.id;
+
+    // Width follows stud count; chunky bricks get extra height
+    const studPitch = 36;
+    const padding = 24;
+    brick.style.width = (cols * studPitch + padding) + 'px';
+    brick.style.minHeight = (rows * studPitch + (chunky ? 90 : 70)) + 'px';
+
+    // Stud grid on top
+    const studGrid = document.createElement('div');
+    studGrid.style.display = 'grid';
+    studGrid.style.gridTemplateColumns = `repeat(${cols}, 28px)`;
+    studGrid.style.gap = '8px';
+    studGrid.style.justifyContent = 'center';
+    studGrid.style.marginBottom = '4px';
+
+    for (let i = 0; i < cols * rows; i++) {
+      const stud = document.createElement('div');
+      stud.className = 'stud';
+      studGrid.appendChild(stud);
+    }
+    brick.appendChild(studGrid);
+
+    // Vendor + capacity label on the brick face
+    const vendor = document.createElement('div');
+    vendor.className = 'vendor-tag';
+    vendor.textContent = drive.vendor;
+    brick.appendChild(vendor);
+
+    const cap = document.createElement('div');
+    cap.className = 'capacity-tag';
+    cap.textContent = drive.capacityTB >= 1
+      ? `${drive.capacityTB} TB`
+      : `${Math.round(drive.capacityTB * 1000)} GB`;
+    brick.appendChild(cap);
+
+    // Form factor pill at the bottom
+    const ff = document.createElement('div');
+    ff.style.fontSize = '10px';
+    ff.style.textAlign = 'center';
+    ff.style.color = 'rgba(0,0,0,0.5)';
+    ff.style.fontFamily = 'Courier New, monospace';
+    ff.textContent = `${drive.formFactor} · ${ifaceLabel(drive.interface)}`;
+    brick.appendChild(ff);
+
+    return brick;
+  }
+
+  // ---------- 3. Side panel ----------
+  const panel = document.getElementById('panel');
+  const panelBody = document.getElementById('panelBody');
+  document.getElementById('closeBtn').addEventListener('click', () => {
+    panel.classList.add('hidden-panel');
+    document.querySelectorAll('.brick.selected').forEach(b => b.classList.remove('selected'));
+  });
+
+  function fmtPrice(p) {
+    if (!p) return '<span class="text-gray-400">price unverified</span>';
+    return `$${p.toLocaleString()}`;
+  }
+
+  function openPanel(drive) {
+    document.querySelectorAll('.brick.selected').forEach(b => b.classList.remove('selected'));
+    document.querySelector(`.brick[data-id="${drive.id}"]`)?.classList.add('selected');
+
+    panelBody.innerHTML = `
+      <h2 class="text-2xl font-black leading-tight mb-1">${drive.name}</h2>
+      <div class="text-xs uppercase tracking-wider text-gray-500 mb-4">
+        ${drive.vendor} · ${drive.category}
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 text-sm mb-5">
+        <div class="bg-gray-100 rounded p-2">
+          <div class="text-[10px] uppercase text-gray-500">Capacity</div>
+          <div class="font-bold text-lg">${drive.capacityTB} TB</div>
+        </div>
+        <div class="bg-gray-100 rounded p-2">
+          <div class="text-[10px] uppercase text-gray-500">Price</div>
+          <div class="font-bold text-lg">${fmtPrice(drive.priceUSD)}</div>
+        </div>
+        <div class="bg-gray-100 rounded p-2">
+          <div class="text-[10px] uppercase text-gray-500">Interface</div>
+          <div class="font-bold">${drive.interface}</div>
+        </div>
+        <div class="bg-gray-100 rounded p-2">
+          <div class="text-[10px] uppercase text-gray-500">Form Factor</div>
+          <div class="font-bold">${drive.formFactor}</div>
+        </div>
+      </div>
+
+      <div class="border-t pt-3 mb-3">
+        <div class="text-xs uppercase tracking-wider text-gray-500 mb-2">Speed</div>
+        <div class="text-sm space-y-1">
+          <div>Seq read: <b>${drive.seqReadMBs.toLocaleString()} MB/s</b></div>
+          <div>Seq write: <b>${drive.seqWriteMBs.toLocaleString()} MB/s</b></div>
+          <div>Random read: <b>${(drive.random4KReadIOPS/1000).toFixed(0)}K IOPS</b></div>
+        </div>
+      </div>
+
+      <div class="border-t pt-3 mb-3">
+        <div class="text-xs uppercase tracking-wider text-gray-500 mb-2">Endurance</div>
+        <div class="text-sm">
+          <div>TBW: <b>${drive.tbw.toLocaleString()} TB</b></div>
+          <div>Power: <b>${drive.powerW} W</b></div>
+        </div>
+      </div>
+
+      <div class="border-t pt-3">
+        <div class="text-xs uppercase tracking-wider text-gray-500 mb-2">Controller</div>
+        <div class="text-sm">${drive.controller}</div>
+        <div class="text-xs text-gray-500 mt-2 italic">${drive.supplyNote || ''}</div>
+      </div>
+    `;
+    panel.classList.remove('hidden-panel');
+  }
+
+  // ---------- 4. Filters ----------
+  const FILTERS = [
+    { label: 'All',    test: () => true },
+    { label: 'SATA',   test: d => d.interface.startsWith('SATA') },
+    { label: 'Gen4',   test: d => d.interface.includes('PCIe 4') },
+    { label: 'Gen5',   test: d => d.interface.includes('PCIe 5') },
+    { label: 'M.2',    test: d => d.formFactor.startsWith('M.2') },
+    { label: '2.5"',   test: d => d.formFactor === '2.5"' },
+    { label: 'U.2',    test: d => d.formFactor === 'U.2' },
+  ];
+
+  let activeFilter = FILTERS[0];
+  let allDrives = [];
+
+  function renderFilters() {
+    const wrap = document.getElementById('filters');
+    wrap.innerHTML = '';
+    FILTERS.forEach(f => {
+      const chip = document.createElement('button');
+      chip.className = 'chip' + (f === activeFilter ? ' active' : '');
+      chip.textContent = f.label;
+      chip.addEventListener('click', () => {
+        activeFilter = f;
+        renderFilters();
+        renderStage();
+      });
+      wrap.appendChild(chip);
+    });
+  }
+
+  function renderStage() {
+    const stage = document.getElementById('stage');
+    stage.innerHTML = '';
+    allDrives
+      .filter(activeFilter.test)
+      .forEach(d => {
+        const brick = renderBrick(d);
+        attachDragHandlers(brick, { source: 'gallery', drive: d });
+        stage.appendChild(brick);
+      });
+  }
+
+  // ---------- 5. Drag & drop onto the baseplate ----------
+  const STUD_PITCH = 36;       // matches CSS stud grid
+  const STUD_HALF = 14;        // half stud size
+  const BRICK_PAD = 12;        // .brick padding-top/left
+  // Offset from a brick's top-left to its first stud's CENTER
+  const FIRST_STUD_OFFSET = BRICK_PAD + STUD_HALF;
+  // Baseplate stud centers sit at (col*36 + 18, row*36 + 18)
+  const BASE_STUD_OFFSET = 18;
+
+  const baseplate = document.getElementById('baseplate');
+  const placedCountEl = document.getElementById('placedCount');
+  const placedBricks = []; // { driveId, el, x, y }
+
+  function updateCount() {
+    const n = placedBricks.length;
+    placedCountEl.textContent = `${n} brick${n === 1 ? '' : 's'} placed`;
+  }
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    placedBricks.forEach(p => p.el.remove());
+    placedBricks.length = 0;
+    updateCount();
+  });
+
+  // Given brick top-left coords in baseplate-local space, snap so the brick's
+  // first stud center aligns with the nearest baseplate stud center.
+  function snapToBaseplate(brickLocalX, brickLocalY, brickWidth, brickHeight) {
+    const rect = baseplate.getBoundingClientRect();
+    const col = Math.round((brickLocalX + FIRST_STUD_OFFSET - BASE_STUD_OFFSET) / STUD_PITCH);
+    const row = Math.round((brickLocalY + FIRST_STUD_OFFSET - BASE_STUD_OFFSET) / STUD_PITCH);
+    const x = col * STUD_PITCH + BASE_STUD_OFFSET - FIRST_STUD_OFFSET;
+    const y = row * STUD_PITCH + BASE_STUD_OFFSET - FIRST_STUD_OFFSET;
+    const maxX = rect.width - brickWidth;
+    const maxY = rect.height - brickHeight;
+    return {
+      x: Math.max(0, Math.min(maxX, x)),
+      y: Math.max(0, Math.min(maxY, y)),
+    };
+  }
+
+  // Attach pointer handlers. {source: 'gallery'} clones on drop; 'placed' moves the element.
+  function attachDragHandlers(brick, { source, drive, placedRef }) {
+    let dragging = false;
+    let startX = 0, startY = 0;
+    let ghost = null;
+    let offsetX = 0, offsetY = 0; // cursor offset within the brick
+    const CLICK_THRESHOLD = 4;    // px before drag kicks in
+
+    brick.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = brick.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+
+      const onMove = (ev) => {
+        if (!dragging) {
+          if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < CLICK_THRESHOLD) return;
+          // Start the drag
+          dragging = true;
+          ghost = brick.cloneNode(true);
+          ghost.classList.add('drag-ghost');
+          ghost.style.width = rect.width + 'px';
+          ghost.style.height = rect.height + 'px';
+          document.body.appendChild(ghost);
+          if (source === 'placed') brick.style.visibility = 'hidden';
+        }
+        ghost.style.left = (ev.clientX - offsetX) + 'px';
+        ghost.style.top = (ev.clientY - offsetY) + 'px';
+
+        // Highlight baseplate when hovered
+        const baseRect = baseplate.getBoundingClientRect();
+        const overBase = ev.clientX >= baseRect.left && ev.clientX <= baseRect.right
+                      && ev.clientY >= baseRect.top  && ev.clientY <= baseRect.bottom;
+        baseplate.classList.toggle('drag-over', overBase);
+      };
+
+      const onUp = (ev) => {
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        baseplate.classList.remove('drag-over');
+
+        if (!dragging) {
+          // Treated as a click → open inspector
+          openPanel(drive);
+          return;
+        }
+
+        const w = parseFloat(ghost.style.width);
+        const h = parseFloat(ghost.style.height);
+        const baseRect = baseplate.getBoundingClientRect();
+        // Is the cursor over the baseplate at drop time?
+        const cursorOnBase = ev.clientX >= baseRect.left && ev.clientX <= baseRect.right
+                          && ev.clientY >= baseRect.top  && ev.clientY <= baseRect.bottom;
+        // Brick top-left in baseplate-local coords
+        const brickLocalX = (ev.clientX - offsetX) - baseRect.left;
+        const brickLocalY = (ev.clientY - offsetY) - baseRect.top;
+        const snap = snapToBaseplate(brickLocalX, brickLocalY, w, h);
+        ghost.remove();
+        ghost = null;
+
+        if (cursorOnBase) {
+          if (source === 'gallery') {
+            placeBrick(drive, snap.x, snap.y);
+          } else {
+            brick.style.left = snap.x + 'px';
+            brick.style.top = snap.y + 'px';
+            brick.style.visibility = '';
+            if (placedRef) { placedRef.x = snap.x; placedRef.y = snap.y; }
+          }
+        } else if (source === 'placed') {
+          // Dropped off the baseplate → remove
+          brick.remove();
+          const idx = placedBricks.findIndex(p => p.el === brick);
+          if (idx >= 0) placedBricks.splice(idx, 1);
+          updateCount();
+        }
+        dragging = false;
+      };
+
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+    });
+  }
+
+  function placeBrick(drive, x, y) {
+    const el = renderBrick(drive);
+    el.classList.add('placed');
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    baseplate.appendChild(el);
+    const ref = { driveId: drive.id, el, x, y };
+    placedBricks.push(ref);
+    attachDragHandlers(el, { source: 'placed', drive, placedRef: ref });
+    el.addEventListener('dblclick', () => {
+      el.remove();
+      const idx = placedBricks.findIndex(p => p.el === el);
+      if (idx >= 0) placedBricks.splice(idx, 1);
+      updateCount();
+    });
+    updateCount();
+  }
+
+  // ---------- 6. Boot ----------
+  fetch('data/drives.json')
+    .then(r => r.json())
+    .then(drives => {
+      allDrives = drives;
+      renderFilters();
+      renderStage();
+    })
+    .catch(err => {
+      document.getElementById('stage').innerHTML =
+        `<div class="text-red-700">Failed to load drives.json — make sure the dev server is running.</div>`;
+      console.error(err);
+    });
+</script>
+</body>
+</html>

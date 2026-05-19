@@ -1,0 +1,15 @@
+{
+  "name": "ssd-procurement-dashboard",
+  "version": "1.0.0",
+  "description": "Interactive single-page web app for visualizing SSD procurement decisions in data center environments. Drag drives into server bays, select workload profiles, and see real-time cost, performance, and supply chain analysis.",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}

@@ -138,117 +138,201 @@ export class RackRenderer {
     }
   }
 
-  _drawBays(ctx, state, bays, x, y, w, h) {
-    const total = bays.length;
-    if (total === 0) return;
+  // Slot pixel geometry per form factor (real-drive aspect ratios)
+  _slotGeometry(ff) {
+    switch (ff) {
+      case 'M.2 2280': return { w: 26, h: 96 };
+      case 'U.2':      return { w: 36, h: 92 };
+      case 'E3.S':     return { w: 24, h: 86 };
+      case '3.5"':     return { w: 50, h: 110 };
+      case '2.5"':
+      default:         return { w: 34, h: 92 };
+    }
+  }
 
-    const gap = 5;
-    let cols = Math.min(8, total);
-    if (total <= 4) cols = total;
-    else if (total <= 16) cols = 8;
-    else if (total <= 32) cols = 8;
-    else cols = 10;
+  // Rows × cols layout matching real chassis density
+  _layoutFor(count, ff) {
+    if (count <= 8)   return { rows: 1, cols: count };
+    if (count === 12) return { rows: 1, cols: 12 };
+    if (count <= 16) return { rows: 2, cols: Math.ceil(count / 2) };
+    if (count <= 24) return { rows: 2, cols: Math.ceil(count / 2) };
+    if (count === 32) {
+      // Towers (T620/T630) pack 4×8 SATA; rack 32× E3.S is 2×16
+      if (ff === '2.5"' || ff === '3.5"') return { rows: 4, cols: 8 };
+      return { rows: 2, cols: 16 };
+    }
+    if (count <= 36) return { rows: 4, cols: 9 };
+    if (count <= 40) return { rows: 2, cols: 20 };
+    return { rows: 4, cols: Math.ceil(count / 4) };
+  }
 
-    const rows = Math.ceil(total / cols);
-    const bayW = (w - (cols - 1) * gap) / cols;
-    const bayH = (h - (rows - 1) * gap) / rows;
-    const baySize = Math.min(bayW, bayH, 72);
-
-    const gridW = cols * baySize + (cols - 1) * gap;
-    const gridH = rows * baySize + (rows - 1) * gap;
-    const gx = x + (w - gridW) / 2;
-    const gy = y + (h - gridH) / 2;
-
-    for (let i = 0; i < total; i++) {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const bx = gx + col * (baySize + gap);
-      const by = gy + row * (baySize + gap);
-      const bay = bays[i];
-      const globalIdx = bay.bayIndex;
-
-      this.bayRects.push({ x: bx, y: by, w: baySize, h: baySize, index: globalIdx });
-
-      const isHovered = state.hoveredBay === globalIdx;
-      const isSelected = state.selectedBay === globalIdx;
-      const hasDrive = bay.drive !== null;
-
-      // Background
-      if (hasDrive) {
-        ctx.fillStyle = bay.drive.color || '#2962ff';
-        ctx.globalAlpha = isHovered ? 0.95 : 0.8;
+  // Group consecutive bays by (formFactor, interface, lanesPerDrive)
+  _groupBays(bays) {
+    const groups = [];
+    for (const bay of bays) {
+      const sig = `${bay.formFactor}|${bay.interface}|${bay.lanesPerDrive || 0}`;
+      const last = groups[groups.length - 1];
+      if (last && last.sig === sig) {
+        last.bays.push(bay);
       } else {
-        ctx.fillStyle = isHovered ? COLORS.bayHover : COLORS.bayEmpty;
-        ctx.globalAlpha = 1;
+        groups.push({
+          sig,
+          formFactor: bay.formFactor,
+          interface: bay.interface,
+          lanesPerDrive: bay.lanesPerDrive || 0,
+          bays: [bay],
+        });
       }
-      this._roundRect(ctx, bx, by, baySize, baySize, 4);
-      ctx.fill();
+    }
+    return groups;
+  }
+
+  _drawBays(ctx, state, bays, x, y, w, h) {
+    if (bays.length === 0) return;
+
+    const groups = this._groupBays(bays);
+    const slotGap = 4;
+    const groupGap = 18;
+    const labelH = 14;
+    const showLabels = groups.length > 1; // single-group sections inherit the section header
+
+    // Layout each group at nominal geometry
+    const layouts = groups.map(g => {
+      const { rows, cols } = this._layoutFor(g.bays.length, g.formFactor);
+      const { w: sw, h: sh } = this._slotGeometry(g.formFactor);
+      return {
+        ...g, rows, cols, slotW: sw, slotH: sh,
+        gridW: cols * sw + (cols - 1) * slotGap,
+        gridH: rows * sh + (rows - 1) * slotGap,
+      };
+    });
+
+    // Total nominal dimensions
+    const maxGroupW = Math.max(...layouts.map(L => L.gridW));
+    const totalH = layouts.reduce((acc, L) =>
+      acc + L.gridH + (showLabels ? labelH : 0), 0)
+      + (layouts.length - 1) * groupGap;
+
+    // Scale to fit available rect (never upscale)
+    const scale = Math.min(1, (w - 4) / maxGroupW, h / totalH);
+
+    let cy = y + (h - totalH * scale) / 2;
+    for (const L of layouts) {
+      const sw = L.slotW * scale;
+      const sh = L.slotH * scale;
+      const sg = slotGap * scale;
+      const gridW = L.cols * sw + (L.cols - 1) * sg;
+      const gx = x + (w - gridW) / 2;
+
+      if (showLabels) {
+        ctx.font = `${Math.max(9, 11 * scale)}px "JetBrains Mono", monospace`;
+        ctx.fillStyle = COLORS.textDim;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        const laneNote = L.lanesPerDrive ? ` · x${L.lanesPerDrive}` : '';
+        ctx.fillText(
+          `${L.bays.length}× ${L.formFactor} · ${L.interface}${laneNote}`,
+          gx, cy + labelH * scale - 2
+        );
+        cy += labelH * scale + 2;
+      }
+
+      for (let i = 0; i < L.bays.length; i++) {
+        const col = i % L.cols;
+        const row = Math.floor(i / L.cols);
+        const bx = gx + col * (sw + sg);
+        const by = cy + row * (sh + sg);
+        const bay = L.bays[i];
+        this.bayRects.push({ x: bx, y: by, w: sw, h: sh, index: bay.bayIndex });
+        this._drawSlot(ctx, state, bay, bx, by, sw, sh, i + 1);
+      }
+      cy += L.gridH * scale + groupGap * scale;
+    }
+  }
+
+  // Draw a single bay slot (rectangular). slotNum is 1-based within its group.
+  _drawSlot(ctx, state, bay, bx, by, sw, sh, slotNum) {
+    const globalIdx = bay.bayIndex;
+    const isHovered = state.hoveredBay === globalIdx;
+    const isSelected = state.selectedBay === globalIdx;
+    const hasDrive = bay.drive !== null;
+    const minDim = Math.min(sw, sh);
+
+    // Background
+    if (hasDrive) {
+      ctx.fillStyle = bay.drive.color || '#2962ff';
+      ctx.globalAlpha = isHovered ? 0.95 : 0.85;
+    } else {
+      ctx.fillStyle = isHovered ? COLORS.bayHover : COLORS.bayEmpty;
+      ctx.globalAlpha = 1;
+    }
+    this._roundRect(ctx, bx, by, sw, sh, 3);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Border
+    ctx.strokeStyle = isSelected
+      ? COLORS.accent
+      : isHovered ? '#ffffff44'
+      : (bay.source === 'module' ? '#4a3a8c66' : COLORS.bayEmptyBorder);
+    ctx.lineWidth = isSelected ? 2 : 1;
+    this._roundRect(ctx, bx, by, sw, sh, 3);
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    if (hasDrive) {
+      const d = bay.drive;
+      const pad = 3;
+      const maxTextW = sw - pad * 2;
+
+      // Drive name — clipped to slot width
+      ctx.fillStyle = '#ffffffcc';
+      ctx.font = `bold ${Math.max(7, minDim * 0.22)}px "JetBrains Mono", monospace`;
+      this._clippedText(ctx, this._abbrev(d.name), bx + sw / 2, by + sh * 0.20, maxTextW);
+
+      // Capacity — hero text, vertical center
+      ctx.fillStyle = '#ffffffee';
+      ctx.font = `bold ${Math.max(10, minDim * 0.36)}px "JetBrains Mono", monospace`;
+      const capLabel = d.capacityTB >= 1 ? `${d.capacityTB}T` : `${(d.capacityTB * 1024).toFixed(0)}G`;
+      ctx.fillText(capLabel, bx + sw / 2, by + sh * 0.46);
+
+      // Interface shorthand
+      ctx.fillStyle = '#ffffff66';
+      ctx.font = `${Math.max(6, minDim * 0.18)}px "JetBrains Mono", monospace`;
+      const ifShort = d.interface === 'SATA III' ? 'SATA' : d.interface.replace('NVMe PCIe ', 'G');
+      ctx.fillText(ifShort, bx + sw / 2, by + sh * 0.68);
+
+      // Price
+      ctx.fillStyle = '#ffffff55';
+      ctx.font = `${Math.max(6, minDim * 0.18)}px "JetBrains Mono", monospace`;
+      const priceLabel = d.priceUSD
+        ? (d.priceUSD >= 1000 ? `$${(d.priceUSD / 1000).toFixed(1)}k` : `$${d.priceUSD}`)
+        : 'TBD';
+      ctx.fillText(priceLabel, bx + sw / 2, by + sh * 0.84);
+
+      // Supply risk pulse — top-right corner
+      if (d.supplyRisk === 'high') {
+        const pulse = Math.sin(this.pulsePhase) * 0.3 + 0.7;
+        ctx.fillStyle = `rgba(244, 67, 54, ${pulse})`;
+        ctx.beginPath();
+        ctx.arc(bx + sw - 5, by + 5, Math.max(2.5, minDim * 0.07), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      // Empty slot — interface stripe at bottom + small slot number at top
+      const ifColor = bay.interface === 'SATA III' ? '#2196f3'
+        : bay.interface.includes('NVMe') ? '#9c27b0'
+        : '#607d8b';
+      ctx.fillStyle = ifColor;
+      ctx.globalAlpha = 0.4;
+      ctx.fillRect(bx + 3, by + sh - 3, sw - 6, 1.5);
       ctx.globalAlpha = 1;
 
-      // Border
-      ctx.strokeStyle = isSelected ? COLORS.accent : isHovered ? '#ffffff44' : (bay.source === 'module' ? '#4a3a8c44' : COLORS.bayEmptyBorder);
-      ctx.lineWidth = isSelected ? 2 : 1;
-      this._roundRect(ctx, bx, by, baySize, baySize, 4);
-      ctx.stroke();
-
-      // Interface type indicator (small bar at bottom)
-      if (!hasDrive) {
-        const ifColor = bay.interface === 'SATA III' ? '#2196f3' : bay.interface.includes('NVMe') ? '#9c27b0' : '#607d8b';
-        ctx.fillStyle = ifColor;
-        ctx.globalAlpha = 0.4;
-        ctx.fillRect(bx + 4, by + baySize - 4, baySize - 8, 2);
-        ctx.globalAlpha = 1;
-      }
-
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-
-      if (hasDrive) {
-        const d = bay.drive;
-        const pad = 4;
-        const maxTextW = baySize - pad * 2;
-
-        // Drive name — clipped to bay width
-        ctx.fillStyle = '#ffffffcc';
-        ctx.font = `bold ${Math.max(8, baySize * 0.13)}px "JetBrains Mono", monospace`;
-        this._clippedText(ctx, this._abbrev(d.name), bx + baySize / 2, by + baySize * 0.28, maxTextW);
-
-        // Capacity — largest text
-        ctx.fillStyle = '#ffffffdd';
-        ctx.font = `bold ${Math.max(11, baySize * 0.20)}px "JetBrains Mono", monospace`;
-        const capLabel = d.capacityTB >= 1 ? `${d.capacityTB}T` : `${(d.capacityTB * 1024).toFixed(0)}G`;
-        ctx.fillText(capLabel, bx + baySize / 2, by + baySize * 0.50);
-
-        // Interface shorthand
-        ctx.fillStyle = '#ffffff55';
-        ctx.font = `${Math.max(7, baySize * 0.10)}px "JetBrains Mono", monospace`;
-        const ifShort = d.interface === 'SATA III' ? 'SATA' : d.interface.replace('NVMe PCIe ', 'G');
-        ctx.fillText(ifShort, bx + baySize / 2, by + baySize * 0.68);
-
-        // Price
-        ctx.fillStyle = '#ffffff44';
-        ctx.font = `${Math.max(7, baySize * 0.10)}px "JetBrains Mono", monospace`;
-        const priceLabel = d.priceUSD ? (d.priceUSD >= 1000 ? `$${(d.priceUSD / 1000).toFixed(1)}k` : `$${d.priceUSD}`) : 'TBD';
-        ctx.fillText(priceLabel, bx + baySize / 2, by + baySize * 0.82);
-
-        // Supply risk pulse
-        if (d.supplyRisk === 'high') {
-          const pulse = Math.sin(this.pulsePhase) * 0.3 + 0.7;
-          ctx.fillStyle = `rgba(244, 67, 54, ${pulse})`;
-          ctx.beginPath();
-          ctx.arc(bx + baySize - 7, by + 7, 3.5, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      } else {
-        // Empty bay — show bay number + form factor
-        ctx.fillStyle = COLORS.textDim;
-        ctx.font = `${Math.max(9, baySize * 0.14)}px "JetBrains Mono", monospace`;
-        ctx.fillText(`${globalIdx + 1}`, bx + baySize / 2, by + baySize * 0.4);
-
-        ctx.fillStyle = '#ffffff33';
-        ctx.font = `${Math.max(7, baySize * 0.10)}px "JetBrains Mono", monospace`;
-        ctx.fillText(bay.formFactor, bx + baySize / 2, by + baySize * 0.6);
-      }
+      ctx.fillStyle = COLORS.textDim;
+      ctx.font = `${Math.max(7, minDim * 0.22)}px "JetBrains Mono", monospace`;
+      ctx.fillText(String(slotNum).padStart(2, '0'), bx + sw / 2, by + sh * 0.5);
     }
   }
 

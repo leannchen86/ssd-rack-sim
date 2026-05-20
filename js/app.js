@@ -1,9 +1,9 @@
 // app.js — Main entry point
 // Loads data, wires state/renderer/UI/insights, runs render loop
-import { createState, computeStats, EventBus } from './state.js?v=4';
-import { RackRenderer } from './renderer.js?v=4';
-import { UI } from './ui.js?v=4';
-import { generateInsights, computeWorkloadFitness } from './insights.js?v=4';
+import { createState, computeStats, EventBus } from './state.js?v=9';
+import { RackRenderer } from './renderer.js?v=9';
+import { UI } from './ui.js?v=9';
+import { generateInsights, computeWorkloadFitness } from './insights.js?v=9';
 
 function interfaceCompatible(driveIf, bayIf) {
   if (driveIf === bayIf) return true;
@@ -13,7 +13,7 @@ function interfaceCompatible(driveIf, bayIf) {
 }
 
 async function loadJSON(path) {
-  const res = await fetch(path);
+  const res = await fetch(path, { cache: 'no-store' });
   return res.json();
 }
 

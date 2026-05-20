@@ -77,7 +77,7 @@
     .section-title {
       font-size: 10px;
       font-weight: 600;
-      letter-spacing: 0.08em;
+      letter-spacing: 0;
       text-transform: uppercase;
       color: var(--text-dim);
       margin-bottom: 6px;
@@ -118,23 +118,61 @@
     .drive-card[draggable="true"] { cursor: grab; }
     .drive-card[draggable="true"]:active { cursor: grabbing; }
 
-    .stats-grid {
+    .stats-shell,
+    .makeup-card {
+      background: #111827;
+      border: 1px solid #26314d;
+      border-radius: 6px;
+      padding: 8px;
+    }
+
+    .stat-hero-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .stat-hero,
+    .stat-mini {
+      background: #1a2138;
+      border-radius: 5px;
+      padding: 7px 8px;
+      border: 1px solid #2e3a5c;
+      min-width: 0;
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: 50px 1fr auto;
+      align-items: center;
+      gap: 7px;
+      min-height: 28px;
+      border-top: 1px solid #202a43;
+      padding: 6px 0;
+    }
+
+    .stat-row-main {
+      min-width: 0;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #cbd5e1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .stat-mini-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 6px;
-    }
-
-    .stat-group {
-      background: #1a2138;
-      border-radius: 5px;
-      padding: 6px 8px;
-      border: 1px solid #2e3a5c;
+      margin-top: 6px;
     }
 
     .stat-label {
       font-size: 8px;
       font-weight: 600;
-      letter-spacing: 0.1em;
+      letter-spacing: 0;
       color: var(--text-dim);
       font-family: 'JetBrains Mono', monospace;
       margin-bottom: 1px;
@@ -152,6 +190,154 @@
       font-size: 9px;
       font-family: 'JetBrains Mono', monospace;
       margin-top: 1px;
+    }
+
+    .stat-value-sm {
+      font-size: 12px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e2e8f0;
+      line-height: 1.25;
+    }
+
+    .meter {
+      height: 5px;
+      width: 100%;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #0d1322;
+      border: 1px solid #26314d;
+    }
+
+    .meter-fill {
+      height: 100%;
+      border-radius: inherit;
+      transition: width 0.2s ease;
+    }
+
+    .split-bar {
+      display: flex;
+      width: 100%;
+      height: 7px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #0d1322;
+      border: 1px solid #26314d;
+    }
+
+    .split-segment {
+      min-width: 2px;
+      height: 100%;
+    }
+
+    .metric-pair {
+      display: grid;
+      grid-template-columns: 18px 1fr 36px;
+      align-items: center;
+      gap: 5px;
+      font-size: 9px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-dim);
+    }
+
+    .status-pill {
+      border-radius: 999px;
+      padding: 1px 6px;
+      border: 1px solid #2e3a5c;
+      background: #0d1322;
+      font-size: 9px;
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+    }
+
+    .fitness-card {
+      background: #111827;
+      border: 1px solid #26314d;
+      border-radius: 5px;
+      padding: 8px;
+    }
+
+    .fitness-row {
+      display: grid;
+      grid-template-columns: 32px 1fr 58px;
+      align-items: center;
+      gap: 6px;
+      font-size: 9px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-dim);
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .info-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      max-width: 100%;
+      min-height: 20px;
+      border: 1px solid #2e3a5c;
+      background: #0d1322;
+      color: #9aa6bd;
+      border-radius: 999px;
+      padding: 2px 7px;
+      font-size: 9px;
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+    }
+
+    .chip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+
+    .category-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .category-chip {
+      border: 1px solid #26314d;
+      background: #101827;
+      color: #8a96ad;
+      border-radius: 999px;
+      padding: 2px 6px;
+      font-size: 9px;
+      font-family: 'JetBrains Mono', monospace;
+      max-width: 130px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .insight-compact {
+      padding: 7px 8px;
+    }
+
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .compact-details summary {
+      cursor: pointer;
+      list-style: none;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-dim);
+      padding: 5px 0;
+    }
+
+    .compact-details summary::-webkit-details-marker {
+      display: none;
     }
 
     .hint {
@@ -234,7 +420,7 @@
         <div class="text-sm font-bold font-mono tracking-tight" style="color: var(--accent);">SSD RACK SIM</div>
         <div class="text-xs text-gray-500 font-mono">Data Center Drive Configurator</div>
       </div>
-      <div class="text-xs text-gray-600 font-mono">Q2 2026 pricing · NAND shortage era</div>
+      <div class="text-xs text-gray-600 font-mono">May 2026 retail pricing · consumer SSDs</div>
     </header>
 
     <!-- Left Panel: Server + Controls + Drives -->
@@ -274,8 +460,8 @@
       </div>
 
       <div class="mb-2">
-        <div class="section-title">Drives</div>
-        <div class="hint mb-2">Click to install · drag onto bay · right-click to remove</div>
+        <div class="section-title">Consumer Retail SSDs</div>
+        <div class="hint mb-2">Amazon/eBay-sourceable · drag onto compatible bay</div>
       </div>
       <div id="drive-palette" class="space-y-1"></div>
     </div>
@@ -296,11 +482,8 @@
 
       <div id="fitness-panel" class="mt-3 pt-3 border-t border-gray-800"></div>
 
-      <div class="mt-3 pt-3 border-t border-gray-800">
-        <div class="section-title">Drive Detail</div>
-        <div id="drive-info">
-          <div class="text-gray-600 text-xs p-2 font-mono">Click a bay for details</div>
-        </div>
+      <div id="drive-info" class="mt-2">
+        <div class="makeup-card text-gray-600 text-xs font-mono">Drive makeup appears after drives are installed</div>
       </div>
     </div>
 
@@ -318,6 +501,6 @@
     </div>
   </div>
 
-  <script type="module" src="./js/app.js?v=4"></script>
+  <script type="module" src="./js/app.js?v=9"></script>
 </body>
 </html>

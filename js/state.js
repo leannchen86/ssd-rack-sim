@@ -118,11 +118,12 @@ export function computeStats(state) {
       driveCount: 0, rawTB: 0, usableTB: 0, totalCost: 0, costPerUsableTB: 0,
       aggSeqReadGBs: 0, aggSeqWriteGBs: 0, realisticReadGBs: 0, realisticWriteGBs: 0,
       chassisMaxBWGBs: 0, busSaturated: false, totalPowerW: 0, rebuildTimeHours: 0, rebuildDegraded: false, rebuildWarning: '',
-      raidValid: false, raidError: '', supplyRiskScore: 0,
+      raidValid: false, raidError: '', supplyRiskScore: 0, highRiskCount: 0,
       vendorConcentration: {}, nandVendorConcentration: {},
       driveCost: 0, chassisCost: 0, moduleCost: 0,
       costPerUsableTBYear5: 0,
       chassisBays: 0, moduleBays: 0,
+      unpricedDrives: 0, priceIncomplete: false,
     };
   }
 

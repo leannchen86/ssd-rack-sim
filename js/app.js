@@ -76,7 +76,7 @@ async function main() {
     const bay = bayAtClientPoint(e.clientX, e.clientY);
     if (bay >= 0) {
       state.selectedBay = bay;
-      ui.showDriveInfo(state.bays[bay]?.drive || null);
+      ui.showDriveInfo(state.bays[bay]?.drive || null, state.bays[bay] || null);
     } else {
       state.selectedBay = -1;
       ui.showDriveInfo(null);

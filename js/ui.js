@@ -489,8 +489,12 @@ export class UI {
       critical: { mark: '!!', color: '#ef4444', border: 'border-red-900', text: 'text-red-400', label: 'critical' },
       warning: { mark: '!', color: '#f59e0b', border: 'border-yellow-900', text: 'text-yellow-400', label: 'watch' },
       suggestion: { mark: 'i', color: '#3b82f6', border: 'border-blue-900', text: 'text-blue-400', label: 'idea' },
-      info: { mark: '.', color: '#64748b', border: 'border-gray-800', text: 'text-gray-500', label: 'info' },
+      info: { mark: 'i', color: '#64748b', border: 'border-gray-800', text: 'text-gray-500', label: 'info' },
     }[severity] || { mark: '.', color: '#64748b', border: 'border-gray-800', text: 'text-gray-500', label: 'info' };
+  }
+
+  _severityRank(severity) {
+    return { critical: 4, warning: 3, suggestion: 2, info: 1 }[severity] || 0;
   }
 
   _shortMessage(message, max = 118) {
@@ -727,23 +731,25 @@ export class UI {
       <div class="fitness-card">
         <div class="flex items-center justify-between gap-2 mb-2">
           <div class="text-xs font-mono text-gray-300 truncate">${this._escapeHtml(workload.name)}</div>
-          <span class="status-pill ${overall.text}">${overall.label}</span>
+          <div class="flex items-center gap-1 min-w-0">
+            <span class="text-xs font-mono text-gray-600 truncate">${this._escapeHtml(dominant)}</span>
+            <span class="status-pill ${overall.text}">${overall.label}</span>
+          </div>
         </div>
-        <div class="space-y-1">
+        <div class="fitness-compact-grid">
           ${rows.map(row => {
             const tone = this._fitnessTone(row.status);
             return `
-              <div class="fitness-row" title="${this._escapeHtml(row.detail)}">
-                <span>${row.label}</span>
+              <div class="fit-tile" title="${this._escapeHtml(row.detail)}">
+                <div class="fit-tile-head">
+                  <span>${row.label}</span>
+                  <span class="${tone.text}">${tone.label}</span>
+                </div>
+                <div class="fit-value">${this._escapeHtml(row.display)}</div>
                 ${this._meter(row.value, row.target, tone.color, row.detail)}
-                <span class="text-gray-400 text-right">${this._escapeHtml(row.display)}</span>
               </div>
             `;
           }).join('')}
-        </div>
-        <div class="mt-2 pt-2 border-t border-gray-800 flex items-center justify-between text-xs font-mono">
-          <span class="text-gray-600">dominant</span>
-          <span class="text-gray-400">${this._escapeHtml(dominant)}</span>
         </div>
       </div>
     `;
@@ -769,46 +775,97 @@ export class UI {
       acc[ins.category] = (acc[ins.category] || 0) + 1;
       return acc;
     }, {});
-    const categoryEntries = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]).slice(0, 4);
-    const visible = insights.slice(0, 4);
-    const hidden = insights.slice(4);
     const severityOrder = ['critical', 'warning', 'suggestion', 'info'];
-    const renderCard = (ins, compact = false) => {
+    const total = insights.length;
+    const categoryEntries = Object.entries(categoryCounts)
+      .map(([category, count]) => {
+        const related = insights.filter(ins => ins.category === category);
+        const worst = related.reduce((acc, ins) =>
+          this._severityRank(ins.severity) > this._severityRank(acc) ? ins.severity : acc, 'info');
+        return {
+          category,
+          count,
+          severity: worst,
+          share: total > 0 ? (count / total) * 100 : 0,
+        };
+      })
+      .sort((a, b) => this._severityRank(b.severity) - this._severityRank(a.severity) || b.count - a.count)
+      .slice(0, 4);
+    const visible = insights.slice(0, 3);
+    const hidden = insights.slice(3);
+    const severitySegments = severityOrder.map(sev => {
+      const meta = this._severityMeta(sev);
+      return {
+        label: `${counts[sev] || 0} ${meta.label}`,
+        value: counts[sev] || 0,
+        color: meta.color,
+      };
+    });
+
+    const renderSignal = (ins, compact = false) => {
       const meta = this._severityMeta(ins.severity);
-      const message = this._shortMessage(ins.message, compact ? 92 : 118);
+      const message = this._shortMessage(ins.message, compact ? 80 : 96);
       return `
-        <div class="insight-card insight-compact mb-1 rounded border ${meta.border} bg-gray-900/50 text-xs font-mono" title="${this._escapeHtml(ins.message)}">
-          <div class="flex items-start gap-2">
-            <div class="flex-shrink-0 ${meta.text} font-bold mt-px">${meta.mark}</div>
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center justify-between gap-2">
-                <span class="text-gray-200 truncate">${this._escapeHtml(ins.title)}</span>
-                <span class="text-gray-600 flex-shrink-0">${this._escapeHtml(ins.category)}</span>
-              </div>
-              <div class="text-gray-500 mt-0.5 leading-snug line-clamp-2">${this._escapeHtml(message)}</div>
+        <div class="signal-row" style="--signal-color:${meta.color}" title="${this._escapeHtml(ins.message)}">
+          <div class="signal-mark">${meta.mark}</div>
+          <div class="min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <div class="signal-title">${this._escapeHtml(ins.title)}</div>
+              <span class="category-chip flex-shrink-0">${this._escapeHtml(ins.category)}</span>
             </div>
+            <div class="signal-message line-clamp-2">${this._escapeHtml(message)}</div>
           </div>
         </div>
       `;
     };
 
     panel.innerHTML = `
-      <div class="mb-2 rounded border border-gray-800 bg-gray-900/40 p-2">
-        <div class="flex items-center gap-2 mb-2">
-          ${severityOrder.filter(sev => counts[sev]).map(sev => {
+      <div class="insight-dashboard">
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <div>
+            <div class="section-title mb-0">Tradeoff Scan</div>
+            <div class="text-xs font-mono text-gray-500">${total} signal${total === 1 ? '' : 's'} across ${Object.keys(categoryCounts).length} area${Object.keys(categoryCounts).length === 1 ? '' : 's'}</div>
+          </div>
+          <span class="status-pill text-gray-400">${stats.driveCount}/${this.state.bays.length} bays</span>
+        </div>
+        ${this._splitBar(severitySegments)}
+        <div class="severity-grid">
+          ${severityOrder.map(sev => {
             const meta = this._severityMeta(sev);
-            return `<span class="status-pill ${meta.text}" style="border-color:${meta.color}55">${counts[sev]} ${meta.label}</span>`;
+            const count = counts[sev] || 0;
+            return `
+              <div class="severity-tally" style="border-color:${count ? `${meta.color}66` : '#26314d'}">
+                <div class="severity-count ${count ? meta.text : 'text-gray-700'}">${count}</div>
+                <div class="severity-label">${meta.label}</div>
+              </div>
+            `;
           }).join('')}
         </div>
-        <div class="category-chips">
-          ${categoryEntries.map(([cat, count]) => `<span class="category-chip" title="${this._escapeHtml(cat)}">${this._escapeHtml(cat)} ${count}</span>`).join('')}
+        <div class="tradeoff-map">
+          ${categoryEntries.map(entry => {
+            const meta = this._severityMeta(entry.severity);
+            return `
+              <div class="tradeoff-tile" style="--tile-color:${meta.color}" title="${this._escapeHtml(`${entry.category}: ${entry.count} signal${entry.count === 1 ? '' : 's'}`)}">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="tradeoff-name">${this._escapeHtml(entry.category)}</div>
+                  <div class="tradeoff-count">${entry.count}</div>
+                </div>
+                ${this._meterPercent(entry.share, meta.color, `${entry.share.toFixed(0)}% of signals`)}
+              </div>
+            `;
+          }).join('')}
         </div>
       </div>
-      ${visible.map(ins => renderCard(ins)).join('')}
+      <div class="section-title mb-1">Top Signals</div>
+      <div class="signal-list">
+        ${visible.map(ins => renderSignal(ins)).join('')}
+      </div>
       ${hidden.length > 0 ? `
         <details class="compact-details mt-1">
           <summary>+ ${hidden.length} more tradeoff${hidden.length > 1 ? 's' : ''}</summary>
-          ${hidden.map(ins => renderCard(ins, true)).join('')}
+          <div class="signal-list mt-1">
+            ${hidden.map(ins => renderSignal(ins, true)).join('')}
+          </div>
         </details>
       ` : ''}
     `;
@@ -816,10 +873,10 @@ export class UI {
 
   updateDriveInfo() {
     const bay = this.state.selectedBay >= 0 ? this.state.bays[this.state.selectedBay] : null;
-    this.showDriveInfo(bay?.drive || null);
+    this.showDriveInfo(bay?.drive || null, bay);
   }
 
-  showDriveInfo(drive) {
+  showDriveInfo(drive, bay = null) {
     const el = this.els.driveInfo;
     if (!el) return;
 
@@ -840,28 +897,43 @@ export class UI {
     const price = drive.priceUSD
       ? `$${drive.priceUSD.toLocaleString()} · $${(drive.priceUSD / drive.capacityTB).toFixed(0)}/TB`
       : 'Unpriced';
+    const bayLabel = bay ? `${bay.source === 'module' ? 'AIC' : 'Bay'} ${bay.bayIndex + 1}` : 'Selected bay';
+    const controller = drive.controllerVendor || drive.controller || 'Unknown';
 
     el.innerHTML = `
-      <div class="makeup-card">
-        <div class="flex items-start justify-between gap-2 mb-2">
+      <div class="makeup-card selected-drive-card">
+        <div class="drive-detail-head">
+          <div class="drive-swatch" style="background:linear-gradient(160deg, ${drive.color}, #0b1020 88%)"></div>
           <div class="min-w-0">
             <div class="section-title mb-1">Selected Drive</div>
             <div class="text-xs font-mono text-gray-200 font-bold truncate">${this._escapeHtml(drive.name)}</div>
+            <div class="text-xs font-mono text-gray-600 truncate">${this._escapeHtml(bayLabel)} · ${drive.capacityTB}TB · ${this._escapeHtml(drive.formFactor)}</div>
           </div>
           <span class="status-pill ${risk.text}" title="${this._escapeHtml(drive.supplyNote)}">${risk.label}</span>
         </div>
-        <div class="chip-row">
-          ${this._chip('', `${drive.capacityTB}TB`, '#4fc3f7')}
-          ${this._chip('', drive.formFactor, '#64748b')}
-          ${this._chip('', iface, iface === 'SATA' ? '#3b82f6' : '#a855f7')}
-          ${this._chip('NAND', drive.nandType, drive.nandType === 'QLC' ? '#f59e0b' : drive.nandType === 'SLC' ? '#22c55e' : '#4fc3f7')}
-          ${this._chip('Source', drive.nandVendor, '#8b5cf6')}
-          ${this._chip('Ctrl', drive.controllerVendor || drive.controller, '#f97316', drive.controller)}
+        <div class="drive-fact-grid">
+          <div class="drive-fact">
+            <div class="drive-fact-label">NAND</div>
+            <div class="drive-fact-value" title="${this._escapeHtml(`${drive.nandType} from ${drive.nandVendor}`)}">${this._escapeHtml(drive.nandType)} · ${this._escapeHtml(drive.nandVendor)}</div>
+          </div>
+          <div class="drive-fact">
+            <div class="drive-fact-label">Controller</div>
+            <div class="drive-fact-value" title="${this._escapeHtml(drive.controller)}">${this._escapeHtml(controller)}</div>
+          </div>
+          <div class="drive-fact">
+            <div class="drive-fact-label">Interface</div>
+            <div class="drive-fact-value">${this._escapeHtml(iface)}</div>
+          </div>
+          <div class="drive-fact">
+            <div class="drive-fact-label">Price</div>
+            <div class="drive-fact-value">${this._escapeHtml(price)}</div>
+          </div>
+        </div>
+        <div class="chip-row mt-2">
           ${this._chip('R/W', `${read}/${write}`, '#22c55e')}
           ${this._chip('DWPD', drive.dwpd, '#eab308', `${drive.tbw.toLocaleString()} TBW`)}
-          ${this._chip('', price, drive.priceUSD ? '#64748b' : '#f59e0b')}
         </div>
-        <div class="text-xs font-mono text-gray-500 mt-2 line-clamp-2" title="${this._escapeHtml(drive.supplyNote)}">${this._escapeHtml(drive.supplyNote)}</div>
+        <div class="text-xs font-mono text-gray-500 mt-2 drive-note" title="${this._escapeHtml(drive.supplyNote)}">${this._escapeHtml(drive.supplyNote)}</div>
         ${drive.middlewareRequired ? '<div class="text-green-400 text-xs font-mono mt-1">aiDAPTIV+ middleware</div>' : ''}
       </div>
     `;

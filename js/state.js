@@ -43,6 +43,8 @@ export function createState() {
     hoveredBay: -1,
     selectedBay: -1,
     dragDrive: null,
+    dragStart: null,
+    paletteDragging: false,
   };
 
   return new Proxy(state, {

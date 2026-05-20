@@ -315,12 +315,27 @@ export class UI {
 
     if (!disabled) {
       card.draggable = true;
+      card.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        this.state.dragDrive = drive;
+        this.state.dragStart = { x: e.clientX, y: e.clientY };
+        this.state.paletteDragging = false;
+      });
       card.addEventListener('dragstart', (e) => {
         this.state.dragDrive = drive;
+        this.state.dragStart = { x: e.clientX, y: e.clientY };
+        this.state.paletteDragging = true;
+        e.dataTransfer.setData('application/x-drive-id', drive.id);
         e.dataTransfer.setData('text/plain', drive.id);
         e.dataTransfer.effectAllowed = 'copy';
       });
-      card.addEventListener('dragend', () => { this.state.dragDrive = null; });
+      card.addEventListener('dragend', () => {
+        requestAnimationFrame(() => {
+          this.state.dragDrive = null;
+          this.state.dragStart = null;
+          this.state.paletteDragging = false;
+        });
+      });
       card.addEventListener('click', () => {
         const bay = this.state.selectedBay;
         if (bay >= 0 && this.state.bays[bay]) {

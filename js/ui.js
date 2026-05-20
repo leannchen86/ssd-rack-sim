@@ -507,8 +507,10 @@ export class UI {
   _compactInsightTitle(title) {
     return String(title || '')
       .replace(/\s+in config$/i, '')
+      .replace(/^all S A T A$/i, 'All-SATA')
       .replace(/^NAND source:\s*/i, 'NAND ')
       .replace(/\s+concentration:\s+/i, ' ')
+      .replace(/^SATA vs NVMe pricing:\s*NVMe reached parity$/i, 'NVMe price parity')
       .replace(/^SATA vs NVMe pricing:\s*/i, 'SATA/NVMe ')
       .replace(/^All-SATA config for non-bulk workload$/i, 'All-SATA strategy')
       .replace(/^Existing server\s+—\s+/i, '')
@@ -800,8 +802,7 @@ export class UI {
           share: total > 0 ? (count / total) * 100 : 0,
         };
       })
-      .sort((a, b) => this._severityRank(b.severity) - this._severityRank(a.severity) || b.count - a.count)
-      .slice(0, 4);
+      .sort((a, b) => this._severityRank(b.severity) - this._severityRank(a.severity) || b.count - a.count);
     const severitySegments = severityOrder.map(sev => {
       const meta = this._severityMeta(sev);
       return {
@@ -817,31 +818,22 @@ export class UI {
         .filter(ins => ins.category === entry.category)
         .sort((a, b) => this._severityRank(b.severity) - this._severityRank(a.severity));
       const primary = related[0];
-      const secondary = related.slice(1, 3).map(ins => this._compactInsightTitle(ins.title));
-      const hiddenCount = Math.max(0, related.length - 3);
+      const markers = related.slice(0, 6).map(ins => this._severityMeta(ins.severity));
+      const hiddenCount = Math.max(0, related.length - markers.length);
+      const tooltip = related
+        .map(ins => `${this._compactInsightTitle(ins.title)}: ${ins.message}`)
+        .join('\n');
       return `
-        <div class="issue-cluster" style="--issue-color:${meta.color}" title="${this._escapeHtml(primary?.message || entry.category)}">
+        <div class="issue-cluster" style="--issue-color:${meta.color}" title="${this._escapeHtml(tooltip || entry.category)}">
           <div class="issue-cluster-head">
             <span class="issue-name">${this._escapeHtml(entry.category)}</span>
             <span class="issue-count">${entry.count}</span>
           </div>
           <div class="issue-primary">${this._escapeHtml(this._compactInsightTitle(primary?.title || entry.category))}</div>
-          ${secondary.length || hiddenCount ? `
-            <div class="issue-secondary">${this._escapeHtml([
-              ...secondary,
-              hiddenCount ? `+${hiddenCount}` : '',
-            ].filter(Boolean).join(' · '))}</div>
-          ` : ''}
-        </div>
-      `;
-    };
-
-    const renderDetail = (ins) => {
-      const meta = this._severityMeta(ins.severity);
-      return `
-        <div class="detail-row" style="--detail-color:${meta.color}" title="${this._escapeHtml(ins.message)}">
-          <span class="detail-dot"></span>
-          <span class="truncate text-gray-300">${this._escapeHtml(this._compactInsightTitle(ins.title))}</span>
+          <div class="issue-markers">
+            ${markers.map(marker => `<span class="issue-dot" style="--dot-color:${marker.color}" title="${this._escapeHtml(marker.label)}"></span>`).join('')}
+            ${hiddenCount ? `<span class="issue-more">+${hiddenCount}</span>` : ''}
+          </div>
         </div>
       `;
     };
@@ -869,12 +861,6 @@ export class UI {
       <div class="issue-board">
         ${categoryEntries.map(entry => renderCluster(entry)).join('')}
       </div>
-      <details class="compact-details mt-1">
-        <summary>details</summary>
-        <div class="detail-list">
-          ${insights.map(ins => renderDetail(ins)).join('')}
-        </div>
-      </details>
     `;
   }
 

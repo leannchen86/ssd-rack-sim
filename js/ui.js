@@ -504,6 +504,17 @@ export class UI {
     return first.length > max ? `${first.slice(0, max - 3).trim()}...` : first;
   }
 
+  _compactInsightTitle(title) {
+    return String(title || '')
+      .replace(/\s+in config$/i, '')
+      .replace(/^NAND source:\s*/i, 'NAND ')
+      .replace(/\s+concentration:\s+/i, ' ')
+      .replace(/^SATA vs NVMe pricing:\s*/i, 'SATA/NVMe ')
+      .replace(/^All-SATA config for non-bulk workload$/i, 'All-SATA strategy')
+      .replace(/^Existing server\s+—\s+/i, '')
+      .replace(/^Medium supply risk drives present$/i, 'Medium supply risk');
+  }
+
   // === REFRESH ALL PANELS ===
   refresh() {
     this.updateStats();
@@ -791,8 +802,6 @@ export class UI {
       })
       .sort((a, b) => this._severityRank(b.severity) - this._severityRank(a.severity) || b.count - a.count)
       .slice(0, 4);
-    const visible = insights.slice(0, 3);
-    const hidden = insights.slice(3);
     const severitySegments = severityOrder.map(sev => {
       const meta = this._severityMeta(sev);
       return {
@@ -802,19 +811,37 @@ export class UI {
       };
     });
 
-    const renderSignal = (ins, compact = false) => {
-      const meta = this._severityMeta(ins.severity);
-      const message = this._shortMessage(ins.message, compact ? 80 : 96);
+    const renderCluster = (entry) => {
+      const meta = this._severityMeta(entry.severity);
+      const related = insights
+        .filter(ins => ins.category === entry.category)
+        .sort((a, b) => this._severityRank(b.severity) - this._severityRank(a.severity));
+      const primary = related[0];
+      const secondary = related.slice(1, 3).map(ins => this._compactInsightTitle(ins.title));
+      const hiddenCount = Math.max(0, related.length - 3);
       return `
-        <div class="signal-row" style="--signal-color:${meta.color}" title="${this._escapeHtml(ins.message)}">
-          <div class="signal-mark">${meta.mark}</div>
-          <div class="min-w-0">
-            <div class="flex items-center justify-between gap-2">
-              <div class="signal-title">${this._escapeHtml(ins.title)}</div>
-              <span class="category-chip flex-shrink-0">${this._escapeHtml(ins.category)}</span>
-            </div>
-            <div class="signal-message line-clamp-2">${this._escapeHtml(message)}</div>
+        <div class="issue-cluster" style="--issue-color:${meta.color}" title="${this._escapeHtml(primary?.message || entry.category)}">
+          <div class="issue-cluster-head">
+            <span class="issue-name">${this._escapeHtml(entry.category)}</span>
+            <span class="issue-count">${entry.count}</span>
           </div>
+          <div class="issue-primary">${this._escapeHtml(this._compactInsightTitle(primary?.title || entry.category))}</div>
+          ${secondary.length || hiddenCount ? `
+            <div class="issue-secondary">${this._escapeHtml([
+              ...secondary,
+              hiddenCount ? `+${hiddenCount}` : '',
+            ].filter(Boolean).join(' · '))}</div>
+          ` : ''}
+        </div>
+      `;
+    };
+
+    const renderDetail = (ins) => {
+      const meta = this._severityMeta(ins.severity);
+      return `
+        <div class="detail-row" style="--detail-color:${meta.color}" title="${this._escapeHtml(ins.message)}">
+          <span class="detail-dot"></span>
+          <span class="truncate text-gray-300">${this._escapeHtml(this._compactInsightTitle(ins.title))}</span>
         </div>
       `;
     };
@@ -822,11 +849,8 @@ export class UI {
     panel.innerHTML = `
       <div class="insight-dashboard">
         <div class="flex items-center justify-between gap-2 mb-2">
-          <div>
-            <div class="section-title mb-0">Tradeoff Scan</div>
-            <div class="text-xs font-mono text-gray-500">${total} signal${total === 1 ? '' : 's'} across ${Object.keys(categoryCounts).length} area${Object.keys(categoryCounts).length === 1 ? '' : 's'}</div>
-          </div>
-          <span class="status-pill text-gray-400">${stats.driveCount}/${this.state.bays.length} bays</span>
+          <div class="section-title mb-0">${total} signals</div>
+          <span class="status-pill text-gray-400">${Object.keys(categoryCounts).length} areas</span>
         </div>
         ${this._splitBar(severitySegments)}
         <div class="severity-grid">
@@ -841,33 +865,16 @@ export class UI {
             `;
           }).join('')}
         </div>
-        <div class="tradeoff-map">
-          ${categoryEntries.map(entry => {
-            const meta = this._severityMeta(entry.severity);
-            return `
-              <div class="tradeoff-tile" style="--tile-color:${meta.color}" title="${this._escapeHtml(`${entry.category}: ${entry.count} signal${entry.count === 1 ? '' : 's'}`)}">
-                <div class="flex items-start justify-between gap-2">
-                  <div class="tradeoff-name">${this._escapeHtml(entry.category)}</div>
-                  <div class="tradeoff-count">${entry.count}</div>
-                </div>
-                ${this._meterPercent(entry.share, meta.color, `${entry.share.toFixed(0)}% of signals`)}
-              </div>
-            `;
-          }).join('')}
+      </div>
+      <div class="issue-board">
+        ${categoryEntries.map(entry => renderCluster(entry)).join('')}
+      </div>
+      <details class="compact-details mt-1">
+        <summary>details</summary>
+        <div class="detail-list">
+          ${insights.map(ins => renderDetail(ins)).join('')}
         </div>
-      </div>
-      <div class="section-title mb-1">Top Signals</div>
-      <div class="signal-list">
-        ${visible.map(ins => renderSignal(ins)).join('')}
-      </div>
-      ${hidden.length > 0 ? `
-        <details class="compact-details mt-1">
-          <summary>+ ${hidden.length} more tradeoff${hidden.length > 1 ? 's' : ''}</summary>
-          <div class="signal-list mt-1">
-            ${hidden.map(ins => renderSignal(ins, true)).join('')}
-          </div>
-        </details>
-      ` : ''}
+      </details>
     `;
   }
 
@@ -895,7 +902,7 @@ export class UI {
     const write = drive.seqWriteMBs >= 1000 ? `${(drive.seqWriteMBs / 1000).toFixed(1)} GB/s` : `${drive.seqWriteMBs} MB/s`;
     const iface = drive.interface === 'SATA III' ? 'SATA' : drive.interface.replace('NVMe PCIe ', 'Gen');
     const price = drive.priceUSD
-      ? `$${drive.priceUSD.toLocaleString()} · $${(drive.priceUSD / drive.capacityTB).toFixed(0)}/TB`
+      ? `$${(drive.priceUSD / drive.capacityTB).toFixed(0)}/TB`
       : 'Unpriced';
     const bayLabel = bay ? `${bay.source === 'module' ? 'AIC' : 'Bay'} ${bay.bayIndex + 1}` : 'Selected bay';
     const controller = drive.controllerVendor || drive.controller || 'Unknown';
@@ -905,35 +912,20 @@ export class UI {
         <div class="drive-detail-head">
           <div class="drive-swatch" style="background:linear-gradient(160deg, ${drive.color}, #0b1020 88%)"></div>
           <div class="min-w-0">
-            <div class="section-title mb-1">Selected Drive</div>
+            <div class="section-title mb-1">Drive</div>
             <div class="text-xs font-mono text-gray-200 font-bold truncate">${this._escapeHtml(drive.name)}</div>
             <div class="text-xs font-mono text-gray-600 truncate">${this._escapeHtml(bayLabel)} · ${drive.capacityTB}TB · ${this._escapeHtml(drive.formFactor)}</div>
           </div>
           <span class="status-pill ${risk.text}" title="${this._escapeHtml(drive.supplyNote)}">${risk.label}</span>
         </div>
-        <div class="drive-fact-grid">
-          <div class="drive-fact">
-            <div class="drive-fact-label">NAND</div>
-            <div class="drive-fact-value" title="${this._escapeHtml(`${drive.nandType} from ${drive.nandVendor}`)}">${this._escapeHtml(drive.nandType)} · ${this._escapeHtml(drive.nandVendor)}</div>
-          </div>
-          <div class="drive-fact">
-            <div class="drive-fact-label">Controller</div>
-            <div class="drive-fact-value" title="${this._escapeHtml(drive.controller)}">${this._escapeHtml(controller)}</div>
-          </div>
-          <div class="drive-fact">
-            <div class="drive-fact-label">Interface</div>
-            <div class="drive-fact-value">${this._escapeHtml(iface)}</div>
-          </div>
-          <div class="drive-fact">
-            <div class="drive-fact-label">Price</div>
-            <div class="drive-fact-value">${this._escapeHtml(price)}</div>
-          </div>
-        </div>
-        <div class="chip-row mt-2">
+        <div class="drive-token-strip" title="${this._escapeHtml(drive.supplyNote)}">
+          ${this._chip('NAND', `${drive.nandType} · ${drive.nandVendor}`, drive.nandType === 'QLC' ? '#f59e0b' : drive.nandType === 'SLC' ? '#22c55e' : '#4fc3f7')}
+          ${this._chip('Ctrl', controller, '#f97316', drive.controller)}
+          ${this._chip('', iface, iface === 'SATA' ? '#3b82f6' : '#a855f7')}
+          ${this._chip('', price, drive.priceUSD ? '#64748b' : '#f59e0b', drive.priceUSD ? `$${drive.priceUSD.toLocaleString()}` : 'Unpriced')}
           ${this._chip('R/W', `${read}/${write}`, '#22c55e')}
           ${this._chip('DWPD', drive.dwpd, '#eab308', `${drive.tbw.toLocaleString()} TBW`)}
         </div>
-        <div class="text-xs font-mono text-gray-500 mt-2 drive-note" title="${this._escapeHtml(drive.supplyNote)}">${this._escapeHtml(drive.supplyNote)}</div>
         ${drive.middlewareRequired ? '<div class="text-green-400 text-xs font-mono mt-1">aiDAPTIV+ middleware</div>' : ''}
       </div>
     `;

@@ -464,6 +464,19 @@
       overflow: hidden;
     }
 
+    .drive-token-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 7px;
+    }
+
+    .drive-token-strip .info-chip {
+      min-height: 19px;
+      padding: 2px 6px;
+      font-size: 9px;
+    }
+
     .chip-row {
       display: flex;
       flex-wrap: wrap;
@@ -633,6 +646,89 @@
       color: #7b859b;
       line-height: 1.35;
       margin-top: 2px;
+    }
+
+    .issue-board {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .issue-cluster {
+      min-width: 0;
+      border: 1px solid #26314d;
+      border-left-width: 3px;
+      border-left-color: var(--issue-color);
+      border-radius: 5px;
+      background: #0f1726;
+      padding: 7px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .issue-cluster-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      color: #8a96ad;
+      font-size: 9px;
+      margin-bottom: 5px;
+    }
+
+    .issue-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .issue-count {
+      color: #e2e8f0;
+      font-weight: 700;
+    }
+
+    .issue-primary {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #e2e8f0;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .issue-secondary {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #7b859b;
+      font-size: 9px;
+      margin-top: 4px;
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .detail-row {
+      display: grid;
+      grid-template-columns: 14px minmax(0, 1fr);
+      gap: 6px;
+      align-items: center;
+      border: 1px solid #26314d;
+      border-radius: 4px;
+      background: #0f1726;
+      padding: 5px 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+    }
+
+    .detail-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--detail-color);
+      box-shadow: 0 0 8px color-mix(in srgb, var(--detail-color) 50%, transparent);
     }
 
     .line-clamp-2 {
@@ -824,8 +920,7 @@
       </div>
       <div class="mb-2">
         <div class="section-title flex items-center gap-2">
-          <span>Insights &amp; Tradeoffs</span>
-          <span class="text-gray-700 text-xs normal-case tracking-normal">auto-generated</span>
+          <span>Tradeoffs</span>
         </div>
       </div>
       <div id="insights-panel">
@@ -834,6 +929,6 @@
     </div>
   </div>
 
-  <script type="module" src="./js/app.js?v=13"></script>
+  <script type="module" src="./js/app.js?v=14"></script>
 </body>
 </html>

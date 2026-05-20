@@ -109,30 +109,115 @@
     transform: translateX(110%);
   }
 
-  /* --- Baseplate --- */
-  .baseplate {
+  /* --- Chassis frame (replaces baseplate) --- */
+  .chassis {
     position: relative;
-    background-color: #66bb52;
-    background-image:
-      radial-gradient(circle at 18px 18px,
-        #4a9c3a 0px, #4a9c3a 11px,
-        transparent 12px),
-      radial-gradient(circle at 18px 18px,
-        rgba(255,255,255,0.35) 0px, rgba(255,255,255,0.35) 6px,
-        transparent 7px);
-    background-size: 36px 36px;
+    background:
+      linear-gradient(180deg, #2c2c2c 0%, #1a1a1a 100%);
     border-radius: 10px;
+    padding: 18px;
     box-shadow:
-      inset 0 4px 0 rgba(255,255,255,0.18),
-      inset 0 -6px 0 rgba(0,0,0,0.25),
-      0 8px 24px rgba(0,0,0,0.25);
+      inset 0 2px 0 rgba(255,255,255,0.08),
+      inset 0 -4px 0 rgba(0,0,0,0.4),
+      0 8px 24px rgba(0,0,0,0.30);
+  }
+  .chassis.empty {
+    background: #444;
+    color: #ccc;
+    text-align: center;
+    padding: 60px 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+  }
+  .bay-group + .bay-group {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed rgba(255,255,255,0.12);
+  }
+  .bay-group-label {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .bay-grid {
+    display: grid;
+    justify-content: start;
+  }
+  .bay-slot {
+    position: relative;
+    background: #0d0d0d;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 3px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 3px 2px;
     overflow: hidden;
   }
-
-  /* Bricks placed on the baseplate are absolutely positioned */
-  .placed {
+  .bay-slot .slot-num {
     position: absolute;
-    z-index: 5;
+    top: 2px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-size: 8px;
+    color: rgba(255,255,255,0.25);
+    pointer-events: none;
+  }
+  .bay-slot.compat-hint {
+    box-shadow: inset 0 0 0 2px rgba(102,187,82,0.6);
+    background: #122218;
+  }
+  .bay-slot.incompat-hint {
+    box-shadow: inset 0 0 0 2px rgba(229,57,53,0.7);
+    background: #2a1212;
+  }
+  .bay-slot.occupied {
+    background: #1a1a1a;
+    padding: 0;
+  }
+  .fitted-brick {
+    width: 100%;
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(180deg, var(--brick-color) 0%, var(--brick-dark) 100%);
+    box-shadow:
+      inset 0 -3px 0 rgba(0,0,0,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.30);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: grab;
+    padding: 4px 2px;
+  }
+  .fitted-brick:active { cursor: grabbing; }
+  .fitted-brick .fitted-vendor {
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    font-weight: bold;
+    color: rgba(0,0,0,0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+    line-height: 1;
+  }
+  .fitted-brick .fitted-cap {
+    font-family: 'Trebuchet MS', sans-serif;
+    font-weight: bold;
+    font-size: 13px;
+    color: rgba(0,0,0,0.8);
+    line-height: 1;
   }
 
   /* A ghost clone follows the cursor while dragging */
@@ -141,16 +226,7 @@
     pointer-events: none;
     opacity: 0.85;
     z-index: 1000;
-    transform: scale(1.05);
-  }
-
-  /* Hint when dragging over the baseplate */
-  .baseplate.drag-over {
-    box-shadow:
-      inset 0 0 0 4px rgba(255,255,255,0.6),
-      inset 0 4px 0 rgba(255,255,255,0.18),
-      inset 0 -6px 0 rgba(0,0,0,0.25),
-      0 8px 24px rgba(0,0,0,0.25);
+    transform: scale(1.02);
   }
 
   /* Filter chips */
@@ -167,6 +243,34 @@
   }
   .chip:hover { transform: translateY(-1px); }
   .chip.active { background: #333; color: #fff; }
+
+  .chassis-meta {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #555;
+  }
+  .chassis-meta .pill {
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  select.chassis-select {
+    background: #fff;
+    border: 2px solid #333;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: 'Trebuchet MS', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 2px 0 #333;
+    cursor: pointer;
+    min-width: 280px;
+  }
 </style>
 </head>
 
@@ -177,7 +281,7 @@
         SSD Lego Sandbox
       </h1>
       <p class="text-sm text-gray-700 mt-2">
-        Every drive on the market as a brick. Click one to peek inside.
+        Real chassis, real slot counts. Drop bricks into form-factor-compatible bays.
         <span class="text-gray-500">·
           <a href="index.html" class="underline">switch to rack sim →</a>
         </span>
@@ -187,20 +291,26 @@
     <!-- Filters -->
     <div id="filters" class="flex flex-wrap gap-2 mb-6"></div>
 
-    <!-- Baseplate (drop zone) -->
+    <!-- Chassis picker + slot grid -->
     <section class="mb-8">
-      <div class="flex items-center justify-between mb-2">
-        <h2 class="text-lg font-bold tracking-tight" style="color:#333;">
-          Your Build
-        </h2>
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
+          <label class="text-sm font-bold" style="color:#333;">Chassis:</label>
+          <select id="chassisSelect" class="chassis-select"></select>
+        </div>
         <div class="flex gap-2 items-center">
-          <span id="placedCount" class="text-xs text-gray-600">0 bricks placed</span>
-          <button id="clearBtn" class="chip" title="Remove all bricks">Clear</button>
+          <span id="placedCount" class="text-xs text-gray-600">0 / 0 bays filled</span>
+          <button id="clearBtn" class="chip" title="Remove all drives">Clear</button>
         </div>
       </div>
-      <div id="baseplate" class="baseplate" style="height: 360px;"></div>
+
+      <div id="chassisMeta" class="chassis-meta mb-3"></div>
+
+      <div id="chassis" class="chassis empty">Select a chassis to begin</div>
+
       <div class="text-xs text-gray-500 mt-2">
-        Drag any brick onto the baseplate. Drag a placed brick off to remove it.
+        Drag any brick onto a compatible bay. Form factor must match
+        (2.5" SATA fits in 3.5" bays with a caddy). Drag a placed brick out to remove.
         Double-click a placed brick to inspect.
       </div>
     </section>
@@ -226,28 +336,19 @@
   </aside>
 
 <script type="module">
-  // ---------- 1. Brick geometry per form factor ----------
-  // Returns { cols, rows } of studs and overall brick "feel"
+  // ---------- 1. Brick geometry per form factor (gallery only) ----------
   function geometry(drive) {
     const cap = drive.capacityTB;
     const ff = drive.formFactor;
-
-    // Stud count scales with capacity, min 2 per axis
-    const totalStuds = Math.max(2, Math.round(cap * 1.5));
-
     if (ff === 'M.2 2280') {
-      // Long & thin: 1 row of studs
       return { cols: Math.min(8, Math.max(3, Math.round(cap * 1.5))), rows: 1, chunky: false };
     }
     if (ff === 'U.2') {
-      // Chunky cube: 2x2 or 3x3 grid, taller
       const side = cap >= 4 ? 3 : 2;
       return { cols: side, rows: side, chunky: true };
     }
-    // 2.5" plate: wider grid
     const cols = cap >= 4 ? 4 : 3;
-    const rows = 2;
-    return { cols, rows, chunky: false };
+    return { cols, rows: 2, chunky: false };
   }
 
   function ifaceClass(iface) {
@@ -264,29 +365,25 @@
     return iface;
   }
 
-  // ---------- 2. Render one brick ----------
+  // ---------- 2. Gallery brick ----------
   function renderBrick(drive) {
     const { cols, rows, chunky } = geometry(drive);
-
     const brick = document.createElement('div');
     brick.className = `brick brick-body ${ifaceClass(drive.interface)}`;
     brick.dataset.id = drive.id;
     brick.dataset.driveId = drive.id;
 
-    // Width follows stud count; chunky bricks get extra height
     const studPitch = 36;
     const padding = 24;
     brick.style.width = (cols * studPitch + padding) + 'px';
     brick.style.minHeight = (rows * studPitch + (chunky ? 90 : 70)) + 'px';
 
-    // Stud grid on top
     const studGrid = document.createElement('div');
     studGrid.style.display = 'grid';
     studGrid.style.gridTemplateColumns = `repeat(${cols}, 28px)`;
     studGrid.style.gap = '8px';
     studGrid.style.justifyContent = 'center';
     studGrid.style.marginBottom = '4px';
-
     for (let i = 0; i < cols * rows; i++) {
       const stud = document.createElement('div');
       stud.className = 'stud';
@@ -294,7 +391,6 @@
     }
     brick.appendChild(studGrid);
 
-    // Vendor + capacity label on the brick face
     const vendor = document.createElement('div');
     vendor.className = 'vendor-tag';
     vendor.textContent = drive.vendor;
@@ -307,7 +403,6 @@
       : `${Math.round(drive.capacityTB * 1000)} GB`;
     brick.appendChild(cap);
 
-    // Form factor pill at the bottom
     const ff = document.createElement('div');
     ff.style.fontSize = '10px';
     ff.style.textAlign = 'center';
@@ -319,7 +414,206 @@
     return brick;
   }
 
-  // ---------- 3. Side panel ----------
+  // ---------- 3. Slot geometry per bay form factor (chassis view) ----------
+  // Pixel sizes loosely modeled on real drive proportions
+  function slotGeometry(ff) {
+    switch (ff) {
+      case 'M.2 2280': return { w: 24, h: 92 };
+      case 'U.2':      return { w: 34, h: 90 };
+      case 'E3.S':     return { w: 22, h: 84 };
+      case '3.5"':     return { w: 46, h: 104 };
+      case '2.5"':
+      default:         return { w: 32, h: 90 };
+    }
+  }
+
+  // Rows × cols layout per bay count + form factor (matches real chassis density)
+  function layoutFor(count, ff) {
+    if (count <= 8)  return { rows: 1, cols: count };
+    if (count === 12) return { rows: 1, cols: 12 };
+    if (count <= 16) return { rows: 2, cols: Math.ceil(count / 2) };
+    if (count <= 24) return { rows: 2, cols: Math.ceil(count / 2) };
+    if (count === 32) {
+      // Towers (T620/T630) pack 4×8 SATA; rack 32× E3.S is 2×16
+      if (ff === '2.5"' || ff === '3.5"') return { rows: 4, cols: 8 };
+      return { rows: 2, cols: 16 };
+    }
+    if (count <= 36) return { rows: 4, cols: 9 };
+    if (count <= 40) return { rows: 2, cols: 20 };
+    return { rows: 4, cols: Math.ceil(count / 4) };
+  }
+
+  // ---------- 4. Compatibility ----------
+  function canFit(drive, bayDef) {
+    if (!drive || !bayDef) return false;
+    const driveIsNvme = drive.interface.includes('NVMe');
+    const bayIsNvme = bayDef.interface.includes('NVMe');
+    if (drive.formFactor === bayDef.formFactor) {
+      return driveIsNvme === bayIsNvme;
+    }
+    // 2.5" SATA in a 3.5" SATA bay (with caddy)
+    if (drive.formFactor === '2.5"' && bayDef.formFactor === '3.5"' &&
+        !driveIsNvme && !bayIsNvme) {
+      return true;
+    }
+    return false;
+  }
+
+  // ---------- 5. Chassis options (from servers.json + modules.json) ----------
+  function buildChassisOptions(servers, modules) {
+    const opts = [];
+    for (const s of servers) {
+      if (Array.isArray(s.bayConfigs) && s.bayConfigs.length) {
+        for (const cfg of s.bayConfigs) {
+          opts.push({
+            id: `${s.id}__${cfg.id}`,
+            name: `${s.name} — ${cfg.name}`,
+            server: s,
+            bays: cfg.bays,
+            owned: !!s.owned,
+            formUnit: s.formUnit,
+          });
+        }
+      } else {
+        opts.push({
+          id: s.id,
+          name: s.name,
+          server: s,
+          bays: s.bays,
+          owned: !!s.owned,
+          formUnit: s.formUnit,
+        });
+      }
+    }
+    for (const m of (modules || [])) {
+      if (m.type === 'aic') {
+        opts.push({
+          id: `aic__${m.id}`,
+          name: `AIC: ${m.name}`,
+          server: null,
+          bays: [{
+            count: m.provides.count,
+            formFactor: m.provides.formFactor,
+            interface: m.provides.interface,
+            hotSwap: !!m.provides.hotSwap,
+          }],
+          owned: false,
+          formUnit: 'PCIe AIC',
+          isAIC: true,
+        });
+      }
+    }
+    return opts;
+  }
+
+  // ---------- 6. State ----------
+  const slots = []; // [{ idx, el, bayDef, drive }]
+  let allDrives = [];
+  let chassisOptions = [];
+  let currentChassis = null;
+
+  // ---------- 7. Render chassis ----------
+  function renderChassisMeta(opt) {
+    const meta = document.getElementById('chassisMeta');
+    if (!opt) { meta.innerHTML = ''; return; }
+    const total = opt.bays.reduce((n, b) => n + b.count, 0);
+    const parts = [];
+    parts.push(`<span class="pill">${opt.formUnit || ''}</span>`);
+    parts.push(`<span class="pill">${total} total bays</span>`);
+    for (const b of opt.bays) {
+      parts.push(`<span class="pill">${b.count}× ${b.formFactor} · ${ifaceLabel(b.interface)}</span>`);
+    }
+    if (opt.owned) parts.push(`<span class="pill" style="background:#fff7cc;">owned fleet</span>`);
+    if (opt.isAIC) parts.push(`<span class="pill" style="background:#e1bee7;">no hot-swap</span>`);
+    meta.innerHTML = parts.join('');
+  }
+
+  function renderChassis(opt) {
+    const frame = document.getElementById('chassis');
+    slots.length = 0;
+    frame.classList.remove('empty');
+    frame.innerHTML = '';
+
+    if (!opt) {
+      frame.classList.add('empty');
+      frame.textContent = 'Select a chassis to begin';
+      updateCount();
+      return;
+    }
+
+    let slotIdx = 0;
+    for (const bayDef of opt.bays) {
+      const { rows, cols } = layoutFor(bayDef.count, bayDef.formFactor);
+      const { w, h } = slotGeometry(bayDef.formFactor);
+
+      const group = document.createElement('div');
+      group.className = 'bay-group';
+
+      const label = document.createElement('div');
+      label.className = 'bay-group-label';
+      const right = bayDef.lanesPerDrive
+        ? `${bayDef.lanesPerDrive}× lanes/drive`
+        : (bayDef.hotSwap === false ? 'no hot-swap' : 'hot-swap');
+      label.innerHTML =
+        `<span>${bayDef.count}× ${bayDef.formFactor} · ${bayDef.interface}</span>` +
+        `<span>${right}</span>`;
+      group.appendChild(label);
+
+      const grid = document.createElement('div');
+      grid.className = 'bay-grid';
+      grid.style.gridTemplateColumns = `repeat(${cols}, ${w}px)`;
+      grid.style.gridAutoRows = `${h}px`;
+      grid.style.gap = '4px';
+
+      for (let i = 0; i < bayDef.count; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'bay-slot';
+        slot.dataset.slotIdx = slotIdx;
+        slot.style.width = w + 'px';
+        slot.style.height = h + 'px';
+        const num = document.createElement('div');
+        num.className = 'slot-num';
+        num.textContent = (i + 1).toString().padStart(2, '0');
+        slot.appendChild(num);
+        grid.appendChild(slot);
+        slots.push({ idx: slotIdx, el: slot, bayDef, drive: null });
+        slotIdx++;
+      }
+
+      group.appendChild(grid);
+      frame.appendChild(group);
+    }
+    updateCount();
+  }
+
+  function updateCount() {
+    const filled = slots.filter(s => s.drive).length;
+    document.getElementById('placedCount').textContent =
+      `${filled} / ${slots.length} bays filled`;
+  }
+
+  // ---------- 8. Fitted brick (placed in slot) ----------
+  function renderFittedBrick(drive) {
+    const el = document.createElement('div');
+    el.className = `fitted-brick ${ifaceClass(drive.interface)}`;
+    el.dataset.driveId = drive.id;
+
+    const vendor = document.createElement('div');
+    vendor.className = 'fitted-vendor';
+    vendor.textContent = drive.vendor.slice(0, 6);
+    el.appendChild(vendor);
+
+    const cap = document.createElement('div');
+    cap.className = 'fitted-cap';
+    cap.textContent = drive.capacityTB >= 1
+      ? `${drive.capacityTB}T`
+      : `${Math.round(drive.capacityTB * 1000)}G`;
+    el.appendChild(cap);
+
+    return el;
+  }
+
+  // ---------- 9. Side panel ----------
   const panel = document.getElementById('panel');
   const panelBody = document.getElementById('panelBody');
   document.getElementById('closeBtn').addEventListener('click', () => {
@@ -387,7 +681,7 @@
     panel.classList.remove('hidden-panel');
   }
 
-  // ---------- 4. Filters ----------
+  // ---------- 10. Filters ----------
   const FILTERS = [
     { label: 'All',    test: () => true },
     { label: 'SATA',   test: d => d.interface.startsWith('SATA') },
@@ -397,9 +691,7 @@
     { label: '2.5"',   test: d => d.formFactor === '2.5"' },
     { label: 'U.2',    test: d => d.formFactor === 'U.2' },
   ];
-
   let activeFilter = FILTERS[0];
-  let allDrives = [];
 
   function renderFilters() {
     const wrap = document.getElementById('filters');
@@ -429,53 +721,35 @@
       });
   }
 
-  // ---------- 5. Drag & drop onto the baseplate ----------
-  const STUD_PITCH = 36;       // matches CSS stud grid
-  const STUD_HALF = 14;        // half stud size
-  const BRICK_PAD = 12;        // .brick padding-top/left
-  // Offset from a brick's top-left to its first stud's CENTER
-  const FIRST_STUD_OFFSET = BRICK_PAD + STUD_HALF;
-  // Baseplate stud centers sit at (col*36 + 18, row*36 + 18)
-  const BASE_STUD_OFFSET = 18;
-
-  const baseplate = document.getElementById('baseplate');
-  const placedCountEl = document.getElementById('placedCount');
-  const placedBricks = []; // { driveId, el, x, y }
-
-  function updateCount() {
-    const n = placedBricks.length;
-    placedCountEl.textContent = `${n} brick${n === 1 ? '' : 's'} placed`;
+  // ---------- 11. Drag & drop into slots ----------
+  function findSlotAt(clientX, clientY) {
+    for (const s of slots) {
+      const r = s.el.getBoundingClientRect();
+      if (clientX >= r.left && clientX <= r.right &&
+          clientY >= r.top && clientY <= r.bottom) return s;
+    }
+    return null;
   }
 
-  document.getElementById('clearBtn').addEventListener('click', () => {
-    placedBricks.forEach(p => p.el.remove());
-    placedBricks.length = 0;
-    updateCount();
-  });
-
-  // Given brick top-left coords in baseplate-local space, snap so the brick's
-  // first stud center aligns with the nearest baseplate stud center.
-  function snapToBaseplate(brickLocalX, brickLocalY, brickWidth, brickHeight) {
-    const rect = baseplate.getBoundingClientRect();
-    const col = Math.round((brickLocalX + FIRST_STUD_OFFSET - BASE_STUD_OFFSET) / STUD_PITCH);
-    const row = Math.round((brickLocalY + FIRST_STUD_OFFSET - BASE_STUD_OFFSET) / STUD_PITCH);
-    const x = col * STUD_PITCH + BASE_STUD_OFFSET - FIRST_STUD_OFFSET;
-    const y = row * STUD_PITCH + BASE_STUD_OFFSET - FIRST_STUD_OFFSET;
-    const maxX = rect.width - brickWidth;
-    const maxY = rect.height - brickHeight;
-    return {
-      x: Math.max(0, Math.min(maxX, x)),
-      y: Math.max(0, Math.min(maxY, y)),
-    };
+  function clearHints() {
+    slots.forEach(s => {
+      s.el.classList.remove('compat-hint', 'incompat-hint');
+    });
   }
 
-  // Attach pointer handlers. {source: 'gallery'} clones on drop; 'placed' moves the element.
-  function attachDragHandlers(brick, { source, drive, placedRef }) {
+  function hintFor(drive, slot) {
+    clearHints();
+    if (!slot) return;
+    if (slot.drive) { slot.el.classList.add('incompat-hint'); return; }
+    slot.el.classList.add(canFit(drive, slot.bayDef) ? 'compat-hint' : 'incompat-hint');
+  }
+
+  function attachDragHandlers(brick, { source, drive, slotRef }) {
     let dragging = false;
     let startX = 0, startY = 0;
     let ghost = null;
-    let offsetX = 0, offsetY = 0; // cursor offset within the brick
-    const CLICK_THRESHOLD = 4;    // px before drag kicks in
+    let offsetX = 0, offsetY = 0;
+    const CLICK_THRESHOLD = 4;
 
     brick.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
@@ -488,7 +762,6 @@
       const onMove = (ev) => {
         if (!dragging) {
           if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < CLICK_THRESHOLD) return;
-          // Start the drag
           dragging = true;
           ghost = brick.cloneNode(true);
           ghost.classList.add('drag-ghost');
@@ -499,54 +772,40 @@
         }
         ghost.style.left = (ev.clientX - offsetX) + 'px';
         ghost.style.top = (ev.clientY - offsetY) + 'px';
-
-        // Highlight baseplate when hovered
-        const baseRect = baseplate.getBoundingClientRect();
-        const overBase = ev.clientX >= baseRect.left && ev.clientX <= baseRect.right
-                      && ev.clientY >= baseRect.top  && ev.clientY <= baseRect.bottom;
-        baseplate.classList.toggle('drag-over', overBase);
+        hintFor(drive, findSlotAt(ev.clientX, ev.clientY));
       };
 
       const onUp = (ev) => {
         document.removeEventListener('pointermove', onMove);
         document.removeEventListener('pointerup', onUp);
-        baseplate.classList.remove('drag-over');
+        clearHints();
 
         if (!dragging) {
-          // Treated as a click → open inspector
           openPanel(drive);
           return;
         }
 
-        const w = parseFloat(ghost.style.width);
-        const h = parseFloat(ghost.style.height);
-        const baseRect = baseplate.getBoundingClientRect();
-        // Is the cursor over the baseplate at drop time?
-        const cursorOnBase = ev.clientX >= baseRect.left && ev.clientX <= baseRect.right
-                          && ev.clientY >= baseRect.top  && ev.clientY <= baseRect.bottom;
-        // Brick top-left in baseplate-local coords
-        const brickLocalX = (ev.clientX - offsetX) - baseRect.left;
-        const brickLocalY = (ev.clientY - offsetY) - baseRect.top;
-        const snap = snapToBaseplate(brickLocalX, brickLocalY, w, h);
-        ghost.remove();
+        const targetSlot = findSlotAt(ev.clientX, ev.clientY);
+        ghost?.remove();
         ghost = null;
 
-        if (cursorOnBase) {
-          if (source === 'gallery') {
-            placeBrick(drive, snap.x, snap.y);
-          } else {
-            brick.style.left = snap.x + 'px';
-            brick.style.top = snap.y + 'px';
-            brick.style.visibility = '';
-            if (placedRef) { placedRef.x = snap.x; placedRef.y = snap.y; }
+        if (targetSlot && targetSlot !== slotRef &&
+            !targetSlot.drive && canFit(drive, targetSlot.bayDef)) {
+          if (source === 'placed' && slotRef) {
+            emptySlot(slotRef);
           }
+          placeIntoSlot(drive, targetSlot);
         } else if (source === 'placed') {
-          // Dropped off the baseplate → remove
-          brick.remove();
-          const idx = placedBricks.findIndex(p => p.el === brick);
-          if (idx >= 0) placedBricks.splice(idx, 1);
-          updateCount();
+          if (!targetSlot) {
+            // Dropped off the chassis → remove
+            emptySlot(slotRef);
+          } else {
+            // Snap back: target was occupied / incompat / same slot
+            brick.style.visibility = '';
+          }
         }
+        // gallery + invalid drop → ghost already removed; nothing to do
+
         dragging = false;
       };
 
@@ -555,35 +814,108 @@
     });
   }
 
-  function placeBrick(drive, x, y) {
-    const el = renderBrick(drive);
-    el.classList.add('placed');
-    el.style.left = x + 'px';
-    el.style.top = y + 'px';
-    baseplate.appendChild(el);
-    const ref = { driveId: drive.id, el, x, y };
-    placedBricks.push(ref);
-    attachDragHandlers(el, { source: 'placed', drive, placedRef: ref });
-    el.addEventListener('dblclick', () => {
-      el.remove();
-      const idx = placedBricks.findIndex(p => p.el === el);
-      if (idx >= 0) placedBricks.splice(idx, 1);
-      updateCount();
-    });
+  // Drop a drive from a slot and restore the empty-bay visual
+  function emptySlot(slot) {
+    slot.drive = null;
+    slot.el.classList.remove('occupied');
+    slot.el.innerHTML = '';
+    const num = document.createElement('div');
+    num.className = 'slot-num';
+    num.textContent = computeSlotLabel(slot);
+    slot.el.appendChild(num);
     updateCount();
   }
 
-  // ---------- 6. Boot ----------
-  fetch('data/drives.json')
-    .then(r => r.json())
-    .then(drives => {
+  // Local slot number within its bay group
+  function computeSlotLabel(slot) {
+    let n = 0;
+    for (const s of slots) {
+      if (s.bayDef === slot.bayDef) {
+        n++;
+        if (s === slot) return n.toString().padStart(2, '0');
+      }
+    }
+    return (slot.idx + 1).toString().padStart(2, '0');
+  }
+
+  function placeIntoSlot(drive, slot) {
+    const fitted = renderFittedBrick(drive);
+    slot.el.innerHTML = '';
+    slot.el.appendChild(fitted);
+    slot.el.classList.add('occupied');
+    slot.drive = drive;
+    attachDragHandlers(fitted, { source: 'placed', drive, slotRef: slot });
+    fitted.addEventListener('dblclick', () => emptySlot(slot));
+    updateCount();
+  }
+
+  // ---------- 12. Chassis selector ----------
+  function renderChassisSelect() {
+    const sel = document.getElementById('chassisSelect');
+    sel.innerHTML = '';
+
+    const groups = {
+      'Owned fleet (legacy)': chassisOptions.filter(o => o.owned),
+      'Modern enterprise':    chassisOptions.filter(o => !o.owned && !o.isAIC),
+      'PCIe add-in cards':    chassisOptions.filter(o => o.isAIC),
+    };
+    for (const [name, list] of Object.entries(groups)) {
+      if (!list.length) continue;
+      const og = document.createElement('optgroup');
+      og.label = name;
+      for (const o of list) {
+        const opt = document.createElement('option');
+        opt.value = o.id;
+        const total = o.bays.reduce((n, b) => n + b.count, 0);
+        const ffs = [...new Set(o.bays.map(b => b.formFactor))].join('+');
+        opt.textContent = `${o.name}  (${total}× ${ffs})`;
+        og.appendChild(opt);
+      }
+      sel.appendChild(og);
+    }
+
+    sel.addEventListener('change', () => {
+      const opt = chassisOptions.find(o => o.id === sel.value);
+      const hasPlaced = slots.some(s => s.drive);
+      if (hasPlaced && !confirm('Switching chassis will clear all placed drives. Continue?')) {
+        sel.value = currentChassis?.id || '';
+        return;
+      }
+      currentChassis = opt;
+      renderChassisMeta(opt);
+      renderChassis(opt);
+    });
+  }
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    slots.forEach(s => { if (s.drive) emptySlot(s); });
+  });
+
+  // ---------- 13. Boot ----------
+  Promise.all([
+    fetch('data/drives.json').then(r => r.json()),
+    fetch('data/servers.json').then(r => r.json()),
+    fetch('data/modules.json').then(r => r.json()).catch(() => []),
+  ])
+    .then(([drives, servers, modules]) => {
       allDrives = drives;
+      chassisOptions = buildChassisOptions(servers, modules);
       renderFilters();
       renderStage();
+      renderChassisSelect();
+
+      // Default: pick the first owned-fleet chassis if any, else first overall
+      const defaultOpt = chassisOptions.find(o => o.owned) || chassisOptions[0];
+      if (defaultOpt) {
+        document.getElementById('chassisSelect').value = defaultOpt.id;
+        currentChassis = defaultOpt;
+        renderChassisMeta(defaultOpt);
+        renderChassis(defaultOpt);
+      }
     })
     .catch(err => {
       document.getElementById('stage').innerHTML =
-        `<div class="text-red-700">Failed to load drives.json — make sure the dev server is running.</div>`;
+        `<div class="text-red-700">Failed to load data — make sure the dev server is running.</div>`;
       console.error(err);
     });
 </script>

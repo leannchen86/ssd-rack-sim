@@ -569,42 +569,43 @@ export class UI {
     const supplyLabel = stats.driveCount ? riskMeta.label : 'NONE';
 
     panel.innerHTML = `
-      <div class="stats-shell">
-        <div class="stat-hero-grid">
-          <div class="stat-hero">
-            <div class="flex items-center justify-between gap-2">
-              <div class="stat-label">CAPACITY</div>
-              <span class="status-pill ${capColor === '#f59e0b' ? 'text-yellow-400' : 'text-blue-300'}">${workload?.requirements?.minUsableTB ? 'TARGET' : 'USABLE'}</span>
-            </div>
-            <div class="flex items-end justify-between gap-3">
-              <div class="stat-value">${stats.usableTB.toFixed(1)} <span class="text-sm text-gray-500">TB</span></div>
-              <div class="stat-sub text-gray-500">${stats.rawTB.toFixed(1)} raw</div>
-            </div>
-            ${this._meter(stats.usableTB, capTarget, capColor, capTitle)}
+      <div class="stats-strip">
+        <div class="strip-card">
+          <div class="flex items-center justify-between gap-2">
+            <div class="stat-label">CAPACITY</div>
+            <span class="status-pill ${capColor === '#f59e0b' ? 'text-yellow-400' : 'text-blue-300'}">${workload?.requirements?.minUsableTB ? 'TARGET' : 'USABLE'}</span>
           </div>
-          <div class="stat-hero">
-            <div class="flex items-center justify-between gap-2">
-              <div class="stat-label">COST</div>
-              ${stats.priceIncomplete ? '<span class="status-pill text-yellow-400" title="One or more drives are missing prices">LOWER</span>' : ''}
-            </div>
-            <div class="flex items-end justify-between gap-3">
-              <div class="stat-value">${this._money(stats.totalCost)}${stats.priceIncomplete ? '<span class="text-yellow-500 text-sm">+?</span>' : ''}</div>
-              <div class="stat-sub text-gray-500">$${stats.costPerUsableTB.toFixed(0)}/TB</div>
-            </div>
-            ${this._splitBar(costSegments)}
-            <div class="stat-sub text-gray-500">$${stats.costPerUsableTBYear5.toFixed(0)}/TB yr</div>
-          </div>
+          <div class="strip-value">${stats.usableTB.toFixed(1)} <span class="text-sm text-gray-500">TB</span></div>
+          ${this._meter(stats.usableTB, capTarget, capColor, capTitle)}
+          <div class="stat-sub text-gray-500">${stats.rawTB.toFixed(1)} raw</div>
         </div>
 
-        <div class="stat-row">
-          <div class="stat-label">RAID</div>
-          <div class="stat-row-main">${RAID_MODES[this.state.raidMode].name.replace(/\s+\(.+\)/, '')}</div>
-          <span class="status-pill ${raidMeta.text}" title="${this._escapeHtml(raidMeta.label)}">${raidShort}</span>
+        <div class="strip-card">
+          <div class="flex items-center justify-between gap-2">
+            <div class="stat-label">COST</div>
+            ${stats.priceIncomplete ? '<span class="status-pill text-yellow-400" title="One or more drives are missing prices">LOWER</span>' : ''}
+          </div>
+          <div class="strip-value">${this._money(stats.totalCost)}${stats.priceIncomplete ? '<span class="text-yellow-500 text-sm">+?</span>' : ''}</div>
+          ${this._splitBar(costSegments)}
+          <div class="stat-sub text-gray-500">$${stats.costPerUsableTB.toFixed(0)}/TB · $${stats.costPerUsableTBYear5.toFixed(0)}/TB yr</div>
         </div>
 
-        <div class="stat-row">
-          <div class="stat-label">B/W</div>
-          <div class="min-w-0 space-y-1">
+        <div class="strip-card">
+          <div class="flex items-center justify-between gap-2">
+            <div class="stat-label">RAID</div>
+            <span class="status-pill ${raidMeta.text}" title="${this._escapeHtml(raidMeta.label)}">${raidShort}</span>
+          </div>
+          <div class="strip-value-sm">${RAID_MODES[this.state.raidMode].name.replace(/\s+\(.+\)/, '')}</div>
+          ${this._meter(stats.raidValid ? 100 : 35, 100, raidMeta.color, raidMeta.label)}
+          <div class="stat-sub ${stats.raidValid ? 'text-gray-500' : 'text-red-400'}">${stats.raidValid ? `${stats.driveCount} drives protected` : raidMeta.label}</div>
+        </div>
+
+        <div class="strip-card">
+          <div class="flex items-center justify-between gap-2">
+            <div class="stat-label">B/W</div>
+            ${stats.busSaturated ? '<span class="status-pill text-yellow-400" title="Drive bandwidth exceeds chassis bus cap">BUS CAP</span>' : '<span class="stat-sub text-gray-500">GB/s</span>'}
+          </div>
+          <div class="space-y-1 mt-1">
             <div class="metric-pair">
               <span>R</span>
               ${this._meter(stats.realisticReadGBs, bwMax, '#4fc3f7', `${stats.realisticReadGBs.toFixed(1)} GB/s read`)}
@@ -616,33 +617,33 @@ export class UI {
               <span class="text-gray-300 text-right">${stats.realisticWriteGBs.toFixed(1)}</span>
             </div>
           </div>
-          ${stats.busSaturated ? '<span class="status-pill text-yellow-400" title="Drive bandwidth exceeds chassis bus cap">BUS CAP</span>' : '<span class="stat-sub text-gray-500">GB/s</span>'}
         </div>
 
-        <div class="stat-mini-grid">
-          <div class="stat-mini">
-            <div class="stat-label">POWER</div>
-            <div class="stat-value-sm">${stats.totalPowerW.toFixed(0)} W</div>
-            ${this._meter(stats.totalPowerW, powerCeiling, '#a78bfa', `${stats.totalPowerW.toFixed(0)} W estimated`)}
-          </div>
-          <div class="stat-mini">
-            <div class="stat-label">REBUILD</div>
-            <div class="stat-value-sm">${stats.rebuildTimeHours.toFixed(1)} h</div>
-            ${this._meter(stats.rebuildTimeHours, rebuildCeiling, rebuildTone, stats.rebuildWarning || (stats.rebuildDegraded ? 'Array vulnerable during rebuild' : 'Mirror rebuild estimate'))}
-            <div class="stat-sub ${stats.rebuildWarning ? 'text-red-400' : stats.rebuildDegraded ? 'text-yellow-500' : 'text-gray-500'}">${rebuildLabel}</div>
-          </div>
-          <div class="stat-mini">
-            <div class="stat-label">SUPPLY</div>
-            <div class="stat-value-sm ${stats.driveCount ? riskMeta.text : 'text-gray-500'}">${stats.supplyRiskScore.toFixed(0)}/100</div>
-            ${this._meterPercent(stats.supplyRiskScore, stats.driveCount ? riskMeta.color : '#64748b', `${supplyLabel} supply risk`)}
-            <div class="stat-sub text-gray-500">${supplyLabel}${stats.highRiskCount ? ` · ${stats.highRiskCount} high` : ''}</div>
-          </div>
-          <div class="stat-mini">
-            <div class="stat-label">BAYS</div>
-            <div class="stat-value-sm">${stats.driveCount}/${this.state.bays.length}</div>
-            ${this._meterPercent(bayFillPct, '#4fc3f7', `${stats.driveCount} of ${this.state.bays.length} bays filled`)}
-            <div class="stat-sub text-gray-500" title="${this._escapeHtml(vendorEntries.map(([v, c]) => `${v}: ${c}`).join(' · '))}">${topVendor}</div>
-          </div>
+        <div class="strip-card">
+          <div class="stat-label">POWER</div>
+          <div class="strip-value-sm">${stats.totalPowerW.toFixed(0)} W</div>
+          ${this._meter(stats.totalPowerW, powerCeiling, '#a78bfa', `${stats.totalPowerW.toFixed(0)} W estimated`)}
+        </div>
+
+        <div class="strip-card">
+          <div class="stat-label">REBUILD</div>
+          <div class="strip-value-sm">${stats.rebuildTimeHours.toFixed(1)} h</div>
+          ${this._meter(stats.rebuildTimeHours, rebuildCeiling, rebuildTone, stats.rebuildWarning || (stats.rebuildDegraded ? 'Array vulnerable during rebuild' : 'Mirror rebuild estimate'))}
+          <div class="stat-sub ${stats.rebuildWarning ? 'text-red-400' : stats.rebuildDegraded ? 'text-yellow-500' : 'text-gray-500'}">${rebuildLabel}</div>
+        </div>
+
+        <div class="strip-card">
+          <div class="stat-label">SUPPLY</div>
+          <div class="strip-value-sm ${stats.driveCount ? riskMeta.text : 'text-gray-500'}">${stats.supplyRiskScore.toFixed(0)}/100</div>
+          ${this._meterPercent(stats.supplyRiskScore, stats.driveCount ? riskMeta.color : '#64748b', `${supplyLabel} supply risk`)}
+          <div class="stat-sub text-gray-500">${supplyLabel}${stats.highRiskCount ? ` · ${stats.highRiskCount} high` : ''}</div>
+        </div>
+
+        <div class="strip-card">
+          <div class="stat-label">BAYS</div>
+          <div class="strip-value-sm">${stats.driveCount}/${this.state.bays.length}</div>
+          ${this._meterPercent(bayFillPct, '#4fc3f7', `${stats.driveCount} of ${this.state.bays.length} bays filled`)}
+          <div class="stat-sub text-gray-500" title="${this._escapeHtml(vendorEntries.map(([v, c]) => `${v}: ${c}`).join(' · '))}">${topVendor}</div>
         </div>
       </div>
     `;
@@ -821,7 +822,6 @@ export class UI {
   showDriveInfo(drive) {
     const el = this.els.driveInfo;
     if (!el) return;
-    const filled = this.state.bays.filter(b => b.drive);
 
     if (!this.state.server) {
       el.innerHTML = '';
@@ -829,48 +829,7 @@ export class UI {
     }
 
     if (!drive) {
-      if (filled.length === 0) {
-        el.innerHTML = `
-          <div class="makeup-card">
-            <div class="flex items-center justify-between gap-2 mb-2">
-              <div class="section-title mb-0">Drive Makeup</div>
-              <span class="status-pill text-gray-500">0/${this.state.bays.length}</span>
-            </div>
-            <div class="chip-row">
-              ${this._chip('NAND', 'pending', '#64748b', 'Install drives to see NAND type and source')}
-              ${this._chip('Supply', 'pending', '#64748b', 'Install drives to see replacement risk')}
-              ${this._chip('Interface', 'pending', '#64748b', 'Install drives to see active interface mix')}
-            </div>
-          </div>
-        `;
-        return;
-      }
-
-      const drives = filled.map(b => b.drive);
-      const total = drives.length;
-      const ifaceName = d => d.interface === 'SATA III' ? 'SATA' : d.interface.replace('NVMe PCIe ', 'Gen');
-      const nandTypeChips = this._topEntries(this._countBy(drives, d => d.nandType), 2)
-        .map(([type, count]) => this._chip(type, `x${count}`, type === 'QLC' ? '#f59e0b' : type === 'SLC' ? '#22c55e' : '#4fc3f7', `${count} ${type} drive${count > 1 ? 's' : ''}`));
-      const nandSourceChips = this._topEntries(this._countBy(drives, d => d.nandVendor), 2)
-        .map(([vendor, count]) => this._chip('NAND', `${vendor} x${count}`, '#8b5cf6', `${count} drive${count > 1 ? 's' : ''} using ${vendor} NAND`));
-      const interfaceChips = this._topEntries(this._countBy(drives, ifaceName), 2)
-        .map(([iface, count]) => this._chip(iface, `x${count}`, iface === 'SATA' ? '#3b82f6' : '#a855f7', `${count} ${iface} drive${count > 1 ? 's' : ''}`));
-      const supplyChips = this._topEntries(this._countBy(drives, d => d.supplyRisk), 3)
-        .map(([risk, count]) => {
-          const tone = this._riskTone(risk);
-          return this._chip('Supply', `${tone.label} x${count}`, tone.color, `${count} ${risk} supply-risk drive${count > 1 ? 's' : ''}`);
-        });
-      el.innerHTML = `
-        <div class="makeup-card">
-          <div class="flex items-center justify-between gap-2 mb-2">
-            <div class="section-title mb-0">Drive Makeup</div>
-            <span class="status-pill text-gray-400">${total}/${this.state.bays.length} bays</span>
-          </div>
-          <div class="chip-row">
-            ${[...nandTypeChips, ...nandSourceChips, ...interfaceChips, ...supplyChips].join('')}
-          </div>
-        </div>
-      `;
+      el.innerHTML = '';
       return;
     }
 

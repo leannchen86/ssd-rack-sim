@@ -209,12 +209,19 @@ export class RackRenderer {
 
     // Total nominal dimensions
     const maxGroupW = Math.max(...layouts.map(L => L.gridW));
+    const maxSlotH = Math.max(...layouts.map(L => L.slotH));
     const totalH = layouts.reduce((acc, L) =>
       acc + L.gridH + (showLabels ? labelH : 0), 0)
       + (layouts.length - 1) * groupGap;
 
-    // Scale to fit available rect (never upscale)
-    const scale = Math.min(1, (w - 4) / maxGroupW, h / totalH);
+    // Scale to fill the available rect. Soft-cap so slots don't get
+    // absurd on very large viewports.
+    const MAX_SLOT_H = 180;
+    const scale = Math.min(
+      MAX_SLOT_H / maxSlotH,
+      (w - 8) / maxGroupW,
+      h / totalH
+    );
 
     let cy = y + (h - totalH * scale) / 2;
     for (const L of layouts) {

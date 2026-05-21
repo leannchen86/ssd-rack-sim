@@ -842,47 +842,82 @@ export class RackRenderer {
     if (hasDrive) {
       const d = bay.drive;
       const driveColor = d.color || COLORS.accent;
-      const bodyGrad = ctx.createLinearGradient(faceX, faceY, faceX + faceW, faceY + faceH);
-      bodyGrad.addColorStop(0, this._shade(driveColor, 18));
-      bodyGrad.addColorStop(0.45, driveColor);
-      bodyGrad.addColorStop(1, this._shade(driveColor, -28));
+
+      const bodyGrad = ctx.createLinearGradient(faceX, faceY, faceX, faceY + faceH);
+      bodyGrad.addColorStop(0, '#25314a');
+      bodyGrad.addColorStop(0.13, '#182236');
+      bodyGrad.addColorStop(0.58, '#111827');
+      bodyGrad.addColorStop(1, '#070b12');
       ctx.fillStyle = bodyGrad;
-      ctx.globalAlpha = isHovered ? 0.98 : 0.92;
       this._roundRect(ctx, faceX, faceY, faceW, faceH, 3);
       ctx.fill();
-      ctx.globalAlpha = 1;
 
-      // Metal latch and pull-tab details.
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
-      this._roundRect(ctx, faceX + faceW * 0.18, faceY + 5, faceW * 0.64, Math.max(3, faceH * 0.035), 2);
+      ctx.strokeStyle = this._alpha(driveColor, isHovered ? 0.62 : 0.36);
+      ctx.lineWidth = 1;
+      this._roundRect(ctx, faceX + 0.5, faceY + 0.5, faceW - 1, faceH - 1, 3);
+      ctx.stroke();
+
+      // Brushed caddy highlights and a restrained brand-color spine.
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+      ctx.fillRect(faceX + 3, faceY + 4, faceW - 6, 1);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.34)';
+      ctx.fillRect(faceX + 3, faceY + faceH - 6, faceW - 6, 2);
+
+      const spineW = Math.max(3, faceW * 0.12);
+      const spineGrad = ctx.createLinearGradient(faceX, faceY, faceX + spineW, faceY);
+      spineGrad.addColorStop(0, this._alpha(driveColor, 0.88));
+      spineGrad.addColorStop(1, this._alpha(driveColor, 0.28));
+      ctx.fillStyle = spineGrad;
+      this._roundRect(ctx, faceX + 4, faceY + 5, spineW, faceH - 10, 2);
       ctx.fill();
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
-      this._roundRect(ctx, faceX + 4, faceY + faceH - Math.max(11, faceH * 0.13), faceW - 8, Math.max(6, faceH * 0.055), 2);
+
+      const latchH = Math.max(6, faceH * 0.075);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.36)';
+      this._roundRect(ctx, faceX + faceW * 0.20, faceY + faceH - latchH - 5, faceW * 0.60, latchH, 2);
       ctx.fill();
 
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const pad = 4;
-      const maxTextW = faceW - pad * 2;
+      const maxTextW = faceW - Math.max(8, faceW * 0.18);
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      const labelW = Math.max(faceW * 0.60, faceW - spineW - 13);
+      const labelH = Math.max(32, faceH * 0.42);
+      const labelX = faceX + faceW - labelW - 5;
+      const labelY = faceY + Math.max(9, faceH * 0.18);
+      const labelGrad = ctx.createLinearGradient(labelX, labelY, labelX, labelY + labelH);
+      labelGrad.addColorStop(0, 'rgba(40, 51, 74, 0.88)');
+      labelGrad.addColorStop(1, 'rgba(8, 13, 22, 0.86)');
+      ctx.fillStyle = labelGrad;
+      this._roundRect(ctx, labelX, labelY, labelW, labelH, 3);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(120, 140, 175, 0.26)';
+      this._roundRect(ctx, labelX + 0.5, labelY + 0.5, labelW - 1, labelH - 1, 3);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(160, 178, 210, 0.32)';
       ctx.beginPath();
-      ctx.arc(faceX + faceW * 0.28, faceY + faceH * 0.16, Math.max(2, minDim * 0.045), 0, Math.PI * 2);
+      ctx.arc(faceX + faceW * 0.30, faceY + faceH * 0.15, Math.max(2, minDim * 0.04), 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `700 ${Math.max(10, Math.min(18, faceW * 0.31, minDim * 0.34))}px "JetBrains Mono", monospace`;
+      ctx.fillStyle = 'rgba(198, 210, 230, 0.58)';
+      ctx.font = `600 ${Math.max(5, Math.min(7, minDim * 0.11))}px "JetBrains Mono", monospace`;
+      this._clippedText(ctx, this._abbrev(d.name).toUpperCase(), labelX + labelW / 2, labelY + labelH * 0.22, labelW - 6);
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = `700 ${Math.max(9, Math.min(16, faceW * 0.28, minDim * 0.30))}px "JetBrains Mono", monospace`;
       const capLabel = this._capacityLabel(d.capacityTB);
-      this._clippedText(ctx, capLabel, faceX + faceW / 2, faceY + faceH * 0.45, maxTextW);
+      this._clippedText(ctx, capLabel, labelX + labelW / 2, labelY + labelH * 0.50, maxTextW);
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
-      ctx.font = `${Math.max(6, Math.min(9, minDim * 0.145))}px "JetBrains Mono", monospace`;
+      ctx.fillStyle = 'rgba(203, 213, 225, 0.70)';
+      ctx.font = `${Math.max(5, Math.min(8, minDim * 0.125))}px "JetBrains Mono", monospace`;
       const ifShort = d.interface === 'SATA III' ? 'SATA' : d.interface.replace('NVMe PCIe ', 'GEN');
-      ctx.fillText(ifShort, faceX + faceW / 2, faceY + faceH * 0.62);
+      this._clippedText(ctx, ifShort, labelX + labelW / 2, labelY + labelH * 0.73, labelW - 6);
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.48)';
-      ctx.font = `${Math.max(6, Math.min(8, minDim * 0.125))}px "JetBrains Mono", monospace`;
-      ctx.fillText(bay.formFactor.replace('2280', ''), faceX + faceW / 2, faceY + faceH * 0.76);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.beginPath();
+      ctx.moveTo(labelX + 5, labelY + labelH * 0.32);
+      ctx.lineTo(labelX + labelW - 5, labelY + labelH * 0.32);
+      ctx.stroke();
 
       // Supply and activity indicators: green/amber/red like a chassis face.
       this._drawStatusLed(ctx, bx + sw - inset * 0.72, by + sh - inset * 0.72, d.supplyRisk);

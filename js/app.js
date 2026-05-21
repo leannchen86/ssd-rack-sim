@@ -1,9 +1,9 @@
 // app.js — Main entry point
 // Loads data, wires state/renderer/UI/insights, runs render loop
-import { createState, computeStats, EventBus } from './state.js';
-import { RackRenderer } from './renderer.js';
-import { UI } from './ui.js';
-import { generateInsights, computeWorkloadFitness } from './insights.js';
+import { createState, computeStats, EventBus } from './state.js?v=31';
+import { RackRenderer } from './renderer.js?v=31';
+import { UI } from './ui.js?v=31';
+import { generateInsights, computeWorkloadFitness } from './insights.js?v=31';
 
 function interfaceCompatible(driveIf, bayIf) {
   if (driveIf === bayIf) return true;
@@ -35,6 +35,36 @@ async function main() {
   const renderer = new RackRenderer(canvas);
 
   const ui = new UI(state, computeStats, generateInsights, computeWorkloadFitness);
+  let lastBuildSignature = '';
+
+  function buildSignature() {
+    const bayDrives = state.bays.map(b => b.drive?.id || '').join(',');
+    const modules = state.modules.map(m => m.id).join(',');
+    return [
+      state.server?.id || '',
+      state.activeBayConfig || '',
+      state.raidMode || '',
+      state.networkGbpsOverride ?? '',
+      state.coolingProfile || '',
+      state.fillStrategy || '',
+      state.fillDriveId || '',
+      state.workload?.id || '',
+      modules,
+      bayDrives,
+    ].join('|');
+  }
+
+  function refreshIfBuildChanged(force = false) {
+    const signature = buildSignature();
+    if (!force && signature === lastBuildSignature) return;
+    lastBuildSignature = signature;
+    ui.refresh();
+  }
+
+  function notifyBuildChanged() {
+    EventBus.emit('bay:update');
+    refreshIfBuildChanged(true);
+  }
 
   function bayAtClientPoint(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
@@ -43,6 +73,27 @@ async function main() {
       clientY >= rect.top && clientY <= rect.bottom;
     if (!inside) return -1;
     return renderer.hitTest(clientX - rect.left, clientY - rect.top);
+  }
+
+  function canvasContainsClientPoint(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    return (
+      clientX >= rect.left && clientX <= rect.right &&
+      clientY >= rect.top && clientY <= rect.bottom
+    );
+  }
+
+  function findCompatibleBay(drive, startIndex = 0) {
+    if (!drive) return -1;
+    const from = Math.max(0, startIndex);
+    let bay = state.bays.findIndex((b, i) =>
+      i >= from && !b.drive && b.formFactor === drive.formFactor && interfaceCompatible(drive.interface, b.interface)
+    );
+    if (bay >= 0) return bay;
+    bay = state.bays.findIndex(b =>
+      !b.drive && b.formFactor === drive.formFactor && interfaceCompatible(drive.interface, b.interface)
+    );
+    return bay;
   }
 
   function placeDriveInBay(drive, bayIndex) {
@@ -56,8 +107,22 @@ async function main() {
     state.selectedBay = bayIndex;
     state.hoveredBay = bayIndex;
     state.dragDrive = null;
-    EventBus.emit('bay:update');
+    notifyBuildChanged();
     return true;
+  }
+
+  function placeDriveFromPoint(drive, clientX, clientY) {
+    if (!drive) return false;
+    const exactBay = bayAtClientPoint(clientX, clientY);
+    if (placeDriveInBay(drive, exactBay)) return true;
+    if (!canvasContainsClientPoint(clientX, clientY)) return false;
+    return placeDriveInBay(drive, findCompatibleBay(drive));
+  }
+
+  function targetBayFromPoint(drive, clientX, clientY) {
+    const exactBay = bayAtClientPoint(clientX, clientY);
+    if (exactBay >= 0) return exactBay;
+    return canvasContainsClientPoint(clientX, clientY) ? findCompatibleBay(drive) : -1;
   }
 
   // === Canvas interaction ===
@@ -89,7 +154,7 @@ async function main() {
     const bay = bayAtClientPoint(e.clientX, e.clientY);
     if (bay >= 0 && state.bays[bay]?.drive) {
       state.bays[bay].drive = null;
-      EventBus.emit('bay:update');
+      notifyBuildChanged();
       ui.showDriveInfo(null);
     }
   });
@@ -107,31 +172,48 @@ async function main() {
       e.dataTransfer?.getData('text/plain') ||
       '';
     const drive = drives.find(d => d.id === driveId) || state.dragDrive;
-    placeDriveInBay(drive, bayAtClientPoint(e.clientX, e.clientY));
+    placeDriveFromPoint(drive, e.clientX, e.clientY);
   });
 
   canvas.addEventListener('dragleave', () => { state.hoveredBay = -1; });
 
-  document.addEventListener('mousemove', (e) => {
+  function updatePaletteDrag(e) {
     if (!state.dragDrive || !state.dragStart) return;
     const distance = Math.hypot(e.clientX - state.dragStart.x, e.clientY - state.dragStart.y);
     if (distance > 6) state.paletteDragging = true;
-    if (state.paletteDragging) state.hoveredBay = bayAtClientPoint(e.clientX, e.clientY);
-  });
+    if (state.paletteDragging) state.hoveredBay = targetBayFromPoint(state.dragDrive, e.clientX, e.clientY);
+  }
 
-  document.addEventListener('mouseup', (e) => {
+  function finishPaletteDrag(e) {
     if (!state.dragDrive || !state.dragStart) return;
     const distance = Math.hypot(e.clientX - state.dragStart.x, e.clientY - state.dragStart.y);
     const shouldPlace = state.paletteDragging || distance > 6;
-    if (shouldPlace) placeDriveInBay(state.dragDrive, bayAtClientPoint(e.clientX, e.clientY));
+    if (shouldPlace) placeDriveFromPoint(state.dragDrive, e.clientX, e.clientY);
     state.dragDrive = null;
     state.dragStart = null;
     state.paletteDragging = false;
-  });
+  }
+
+  document.addEventListener('mousemove', updatePaletteDrag);
+  document.addEventListener('pointermove', updatePaletteDrag);
+  document.addEventListener('mouseup', finishPaletteDrag);
+  document.addEventListener('pointerup', finishPaletteDrag);
+  document.addEventListener('dragover', (e) => {
+    if (!state.dragDrive || !canvasContainsClientPoint(e.clientX, e.clientY)) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    state.hoveredBay = targetBayFromPoint(state.dragDrive, e.clientX, e.clientY);
+  }, true);
+  document.addEventListener('drop', (e) => {
+    if (!state.dragDrive || !canvasContainsClientPoint(e.clientX, e.clientY)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    placeDriveFromPoint(state.dragDrive, e.clientX, e.clientY);
+  }, true);
 
   document.addEventListener('dragend', (e) => {
     if (state.dragDrive) {
-      placeDriveInBay(state.dragDrive, bayAtClientPoint(e.clientX, e.clientY));
+      placeDriveFromPoint(state.dragDrive, e.clientX, e.clientY);
     }
     state.dragDrive = null;
     state.dragStart = null;
@@ -143,11 +225,13 @@ async function main() {
   function frame() {
     const stats = computeStats(state);
     renderer.render(state, stats);
+    refreshIfBuildChanged();
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 
   ui.refresh();
+  refreshIfBuildChanged(true);
 }
 
 main().catch(console.error);

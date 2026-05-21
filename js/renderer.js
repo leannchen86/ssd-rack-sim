@@ -117,7 +117,7 @@ export class RackRenderer {
       const modY = chassisY + chassisHeight + padding;
       const mod = state.modules[0]; // Support first module for now
       this._drawSection(ctx, padding, modY, W - padding * 2, moduleHeight,
-        `AIC: ${mod.name}`, `${moduleBays.filter(b => b.drive).length}/${moduleBays.length} slots`,
+        `Expansion: ${mod.name}`, `${moduleBays.filter(b => b.drive).length}/${moduleBays.length} slots`,
         COLORS.moduleBg, COLORS.moduleBorder,
         mod.provides?.hotSwap === false ? '⚠ NO HOT-SWAP' : ''
       );
@@ -1183,7 +1183,7 @@ export class RackRenderer {
       .replace('ADATA XPG ', 'XPG ')
       .replace('Apacer Industrial SATA', 'Apacer')
       .replace('Phison Pascari ', 'Pasc.')
-      .replace('Phison aiDAPTIV+ ', 'aiDAP ')
+      .replace('Phison AI ', 'AI ')
       .replace('Phison S12DC ', 'S12DC ')
       .replace('Pascari ', 'Pasc.')
       .replace('Kingston ', 'K.')

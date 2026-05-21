@@ -51,7 +51,7 @@
     "priceNote": "Already owned",
     "powerBaseW": 200,
     "thermalDesign": "standard",
-    "notes": "Gen4 PCIe but SATA backplane. AIC retrofit candidate. 1× HBA Gen4 x8 (~5 GB/s controller limit)."
+    "notes": "Gen4 PCIe but SATA backplane. PCIe expansion candidate. 1× HBA Gen4 x8 (~5 GB/s controller limit)."
   },
   {
     "id": "dell-t620-legacy",

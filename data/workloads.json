@@ -1,17 +1,24 @@
 [
   {
     "id": "gi-bulk",
-    "name": "GI Bulk Storage",
+    "name": "Bulk Storage / Archive",
     "icon": "db",
-    "description": "Web crawl index storage. High capacity, sequential writes during crawl, periodic reads. Dominant metric: $/TB.",
-    "examples": ["choi8", "venus", "smith04"],
+    "description": "Large, mostly sequential data sets such as archives, media libraries, crawl data, or cold analytical stores. Dominant metric: $/TB.",
+    "examples": [],
     "requirements": {
       "minUsableTB": 80,
       "minSeqWriteGBs": 1.0,
       "minRandomReadIOPS": 50000,
       "minDWPD": 0.1,
       "preferredRaid": "RAID10",
-      "raidNote": "Trending toward RAID10 for newer builds — RAID5 rebuild pain was significant"
+      "raidNote": "RAID10 gives safer rebuild behavior; RAID5 buys more usable capacity at higher rebuild risk."
+    },
+    "modelAssumptions": {
+      "writeTBPerDay": 12,
+      "writeAmplification": 1.2,
+      "networkGbps": 25,
+      "targetP99ReadMs": 25,
+      "typicalQueueDepth": 4
     },
     "priorities": {
       "costPerTB": "critical",
@@ -24,26 +31,25 @@
       "latency": "low"
     },
     "insights": [
-      "GI workload is capacity-dominated — $/TB matters more than IOPS",
-      "Sequential write during crawl is the main I/O pattern, not random",
-      "Consumer TLC is acceptable — Diffbot has run Samsung EVOs for years",
-      "Drew: 'we don't need industrial for that cost'",
-      "NVMe speeds are wasted on this workload — the bottleneck is network and CPU, not disk",
+      "Bulk storage is capacity-dominated - $/TB matters more than peak IOPS.",
+      "Large ingest or batch jobs tend to care more about sustained sequential write than tiny random writes.",
+      "Consumer TLC can be acceptable when write intensity is moderate and spares are planned.",
+      "NVMe speeds can be wasted if the bottleneck is network, CPU, or the storage controller.",
       "RAID5 gives ~30% more usable capacity but RAID10 rebuilds are much safer"
     ],
     "antiPatterns": [
-      { "condition": "hasU2Drives", "message": "Drew has said they won't use U.2 for GI — 'we only own 5 machines that can even take a U.2, and likely will never use them for GI'" },
-      { "condition": "hasE3SDrives", "message": "E3.S is 12% more $/TB than U.2 with no adapters. Not cost-justified for bulk storage." },
-      { "condition": "qlcDrives", "message": "QLC rejected — Drew: 'QVO — we don't want those, performance issues.'" },
-      { "condition": "industrialDrives", "message": "Industrial-grade drives are 3x cost premium. Drew rejected these for GI." }
+      { "condition": "hasU2Drives", "message": "U.2 NVMe may be overkill for bulk storage if the use case is network- or controller-limited." },
+      { "condition": "hasE3SDrives", "message": "E3.S can carry a form-factor premium; it may not be cost-justified for capacity-first archive tiers." },
+      { "condition": "qlcDrives", "message": "QLC can look attractive on $/TB, but sustained writes can fall sharply after cache exhaustion." },
+      { "condition": "industrialDrives", "message": "Industrial-grade SSDs add cost that usually does not pay back for capacity-first archive tiers." }
     ]
   },
   {
     "id": "websearch-serving",
-    "name": "Websearch Serving",
+    "name": "Search / Web Serving",
     "icon": "search",
-    "description": "Query-serving layer reading from index. Low-latency random reads critical. Dominant metric: random read IOPS.",
-    "examples": ["odin", "zeus"],
+    "description": "User-facing search, web serving, and read-heavy API use cases. Low-latency random reads are critical.",
+    "examples": [],
     "requirements": {
       "minUsableTB": 4,
       "maxUsableTB": 16,
@@ -51,6 +57,13 @@
       "minRandomReadIOPS": 500000,
       "minDWPD": 0.3,
       "preferredRaid": "RAID10"
+    },
+    "modelAssumptions": {
+      "writeTBPerDay": 1,
+      "writeAmplification": 1.1,
+      "networkGbps": 25,
+      "targetP99ReadMs": 2,
+      "typicalQueueDepth": 4
     },
     "priorities": {
       "costPerTB": "low",
@@ -63,22 +76,21 @@
       "latency": "critical"
     },
     "insights": [
-      "Mike: 'websearch mainly uses CPU + gen5 nvme'",
-      "This is where NVMe price parity changes everything — if 4TB SATA ≈ 4TB NVMe, new serving boxes should be NVMe-first",
-      "One NVMe box may replace 3 SATA boxes due to IOPS advantage — TCO comparison isn't drive-vs-drive",
-      "p99 latency matters more than throughput",
-      "Capacity needs are modest (4-16TB) — don't overbuild"
+      "This is where NVMe price parity changes everything - if 4TB SATA and 4TB NVMe are close in price, new serving boxes should be NVMe-first.",
+      "One NVMe-heavy server can replace multiple SATA boxes when random read IOPS is the limiter.",
+      "p99 latency matters more than headline throughput for user-facing requests.",
+      "Capacity needs are usually modest - don't overbuild storage that the serving tier will not use."
     ],
     "antiPatterns": [
-      { "condition": "allSATA", "message": "SATA drives cap at ~98K random read IOPS — websearch needs 500K+. NVMe is 10-20x faster for random reads." },
-      { "condition": "overCapacity", "message": "Websearch needs 4-16TB. Building 80+TB for websearch is wasting money on unneeded capacity." }
+      { "condition": "allSATA", "message": "SATA drives have much weaker random-read latency and IOPS than NVMe. For serving use cases, this can be a category mismatch." },
+      { "condition": "overCapacity", "message": "Search / Web Serving is usually performance-first, not capacity-first. Very large builds can waste money on unused capacity." }
     ]
   },
   {
     "id": "kg-couchbase",
-    "name": "Knowledge Graph / Couchbase",
+    "name": "Database / Low-Latency App",
     "icon": "graph",
-    "description": "Structured entity data, mixed read/write. Similar to GI but smaller scale. Dominant metric: mixed performance.",
+    "description": "Databases, application state, caches, and mixed read/write services. Dominant metric: balanced latency, IOPS, and endurance.",
     "examples": [],
     "requirements": {
       "minUsableTB": 20,
@@ -87,6 +99,13 @@
       "minRandomReadIOPS": 200000,
       "minDWPD": 0.5,
       "preferredRaid": "RAID10"
+    },
+    "modelAssumptions": {
+      "writeTBPerDay": 8,
+      "writeAmplification": 2.5,
+      "networkGbps": 25,
+      "targetP99ReadMs": 5,
+      "typicalQueueDepth": 4
     },
     "priorities": {
       "costPerTB": "moderate",
@@ -99,30 +118,36 @@
       "latency": "moderate"
     },
     "insights": [
-      "Mixed read/write workload — needs balanced performance",
-      "Smaller than GI but needs better random I/O",
-      "NVMe would help but isn't as critical as for websearch"
+      "Mixed read/write services need balanced performance, not just raw capacity.",
+      "Write amplification from databases, compaction, or snapshots makes endurance more important than it looks.",
+      "NVMe helps tail latency and random I/O, especially when the app is user-facing."
     ],
-    "antiPatterns": []
+    "antiPatterns": [
+      { "condition": "qlcDrives", "message": "QLC can be risky for mixed database use cases because sustained writes and endurance are weaker than TLC." },
+      { "condition": "allSATA", "message": "All-SATA can pass aggregate capacity checks while still having worse tail latency than an NVMe-based app tier." }
+    ]
   },
   {
     "id": "llm-finetune",
-    "name": "LLM Fine-tuning (aiDAPTIV+)",
+    "name": "AI Training Scratch",
     "icon": "brain",
-    "description": "Specialized: SLC SSDs as extended GPU memory for training. Layer swapping writes multiple TB/hour. Not general storage.",
+    "description": "High-throughput scratch space for model checkpoints, datasets, feature caches, and training pipelines. Dominant metrics: sustained write, NVMe bandwidth, and endurance.",
     "examples": [],
-    "specialized": true,
     "requirements": {
-      "minUsableTB": 2,
-      "maxUsableTB": 8,
-      "minSeqWriteGBs": 10,
-      "minRandomReadIOPS": 1000000,
-      "minDWPD": 50,
-      "requiresSLC": true,
-      "requiresMiddleware": true,
-      "requiresGPU": true,
+      "minUsableTB": 8,
+      "maxUsableTB": 32,
+      "minSeqWriteGBs": 8,
+      "minRandomReadIOPS": 800000,
+      "minDWPD": 0.5,
       "preferredRaid": "JBOD",
-      "raidNote": "aiDAPTIV+ manages its own data placement — no traditional RAID"
+      "raidNote": "AI scratch is often temporary or replicated elsewhere; JBOD/RAID0 can be acceptable only when data loss is tolerable."
+    },
+    "modelAssumptions": {
+      "writeTBPerDay": 30,
+      "writeAmplification": 1.0,
+      "networkGbps": 100,
+      "targetP99ReadMs": 2,
+      "typicalQueueDepth": 8
     },
     "priorities": {
       "costPerTB": "low",
@@ -135,22 +160,14 @@
       "latency": "critical"
     },
     "insights": [
-      "This is NOT general storage — it's GPU VRAM extension for LLM training",
-      "Every layer swap during training is a write — a 70B model session can write multiple TB/hour",
-      "Requires Phison aiDAPTIV+ middleware with PyTorch/TensorFlow integration",
-      "Requires compatible GPUs (e.g., RTX 6000 Ada × 4)",
-      "Requires dual-socket server with ≥ 2 Gen5 x16 slots",
-      "SLC drives (100 DWPD) are 3x price/TB but justified by endurance requirements"
+      "AI scratch is not long-term storage - it is a fast working area for datasets, checkpoints, shuffles, and cache files.",
+      "Long training or preprocessing jobs can write tens of TB/day, so sustained write and TBW burn-down matter.",
+      "NVMe and high network bandwidth matter more here than for archive storage.",
+      "If the data is not replicated elsewhere, a no-redundancy layout is risky despite the speed advantage."
     ],
     "antiPatterns": [
-      { "condition": "tlcDrives", "message": "TLC drives have 0.1-1 DWPD — aiDAPTIV+ needs 50+ DWPD. SLC is required." },
-      { "condition": "noGPU", "message": "LLM fine-tuning requires GPUs. This is a specialized compute+storage config." }
-    ],
-    "specialConfig": {
-      "requiredMiddlewareLicense": 5000,
-      "requiredGPUs": { "min": 2, "max": 8, "example": "RTX 6000 Ada" },
-      "requiredDriveType": "SLC",
-      "requiredMinDWPD": 50
-    }
+      { "condition": "qlcDrives", "message": "QLC is a poor fit for heavy AI scratch writes because post-cache sustained write can collapse." },
+      { "condition": "allSATA", "message": "SATA is usually too slow for high-throughput AI scratch. NVMe is the more realistic baseline." }
+    ]
   }
 ]

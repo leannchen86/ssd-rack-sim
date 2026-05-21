@@ -1,10 +1,10 @@
 [
   {
     "id": "apex-x16-gen5",
-    "name": "Apex Storage X16 Gen5",
+    "name": "NVMe PCIe Expansion Card",
     "type": "aic",
-    "description": "PCIe add-in card with 16× M.2 NVMe slots (8 front, 8 back)",
-    "vendor": "Apex Storage",
+    "description": "PCIe add-in card with 16× M.2 NVMe slots",
+    "vendor": "Generic PCIe Expansion",
     "requires": {
       "slotType": "x16",
       "minPcieGen": 3,
@@ -28,20 +28,20 @@
     "thermalLoadW": 100,
     "thermalNote": "80-120W heat load in a PCIe slot. Chassis not designed for it — expect throttling without fan shroud.",
     "priceUSD": 3000,
-    "priceNote": "~$2,500-3,500 estimated (Gen4 X16 is $1,800, Gen4 X21 is $2,800)",
+    "priceNote": "~$2,500-3,500 estimated for a high-density PCIe NVMe card",
     "performanceByHostGen": {
       "3": { "maxGBs": 16, "note": "Gen3 x16 ceiling — 25% of rated performance" },
       "4": { "maxGBs": 32, "note": "Gen4 x16 ceiling — 50% of rated performance" },
       "5": { "maxGBs": 56, "note": "Full Gen5 x16 — rated performance" }
     },
     "caveats": [
-      "No hot-swap — server must be powered down to replace M.2 drives",
-      "PCIe lane contention — consumes a full x16 slot from the server's lane budget",
+      "No hot-swap — server may need downtime to replace M.2 drives",
+      "PCIe lane contention — consumes a full x16 slot from the server lane budget",
       "Thermal: 80-120W of heat in chassis not designed for it",
-      "No RAID on card — use software mdadm",
+      "No local protection on card — use software RAID or higher-level replication",
       "Existing legacy fleet has Gen3 slots — card runs at 25% rated speed",
       "Upgrade bridge, not a long-term architecture"
     ],
-    "whyRecommended": "Cheapest path to Gen5 NVMe in existing SATA boxes without forklift server replacement. For ~$3k you get 64TB usable NVMe capacity vs $25k for a new R7725xd."
+    "whyRecommended": "A lower-cost way to add NVMe capacity to an existing server, with caveats around hot-swap, lane limits, thermal design, and supportability."
   }
 ]

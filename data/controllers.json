@@ -116,7 +116,7 @@
     "nandSupport": ["TLC"],
     "status": "active",
     "powerW": 7.5,
-    "notes": "Flagship Gen5 consumer/prosumer. 6nm TSMC, 8-channel, DRAM. Used by Corsair MP700 Pro XT, ADATA XPG Blade, TeamGroup Z54E, Sabrent Rocket 5. 8TB drives coming. Also basis for aiDAPTIV+ AI100E (SLC variant)."
+    "notes": "Flagship Gen5 consumer/prosumer. 6nm TSMC, 8-channel, DRAM. Used by Corsair MP700 Pro XT, ADATA XPG Blade, TeamGroup Z54E, and Sabrent Rocket 5."
   },
   {
     "id": "phison-x2",

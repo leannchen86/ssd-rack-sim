@@ -140,8 +140,8 @@
 
     .drive-card { border: 1px solid transparent; }
     .drive-card:hover { border-color: #2e3a5c; }
-    .drive-card[draggable="true"] { cursor: grab; }
-    .drive-card[draggable="true"]:active { cursor: grabbing; }
+    .drive-card.can-drag { cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; }
+    .drive-card.can-drag:active { cursor: grabbing; }
 
     .stats-shell,
     .makeup-card {
@@ -158,12 +158,18 @@
     }
 
     .strip-card {
+      position: relative;
       min-width: 0;
       min-height: 54px;
       border: 1px solid #2e3a5c;
       border-radius: 5px;
       background: #151d33;
       padding: 6px 8px;
+    }
+
+    .strip-card:hover,
+    .strip-card:focus-within {
+      z-index: 90;
     }
 
     .strip-value {
@@ -245,6 +251,117 @@
       margin-bottom: 1px;
     }
 
+    .term-anchor {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      border-bottom: 1px dotted rgba(148, 163, 184, 0.55);
+      color: inherit;
+      cursor: help;
+      outline: none;
+    }
+
+    .term-anchor:focus-visible {
+      color: #e2e8f0;
+      border-bottom-color: var(--accent);
+    }
+
+    .term-anchor.term-compact {
+      border-bottom: 0;
+    }
+
+    .term-label-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .term-popover {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      z-index: 80;
+      display: block;
+      width: 240px;
+      max-width: min(72vw, 260px);
+      padding: 8px;
+      border: 1px solid #3b4a74;
+      border-radius: 5px;
+      background: #0b1220;
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(79, 195, 247, 0.08);
+      color: #cbd5e1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 400;
+      letter-spacing: 0;
+      line-height: 1.35;
+      text-transform: none;
+      white-space: normal;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-3px);
+      transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s ease;
+    }
+
+    .term-popover::before {
+      content: '';
+      position: absolute;
+      top: -5px;
+      left: 10px;
+      width: 8px;
+      height: 8px;
+      border-left: 1px solid #3b4a74;
+      border-top: 1px solid #3b4a74;
+      background: #0b1220;
+      transform: rotate(45deg);
+    }
+
+    .term-anchor:hover .term-popover,
+    .term-anchor:focus-visible .term-popover {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .term-popover-title {
+      display: block;
+      margin-bottom: 4px;
+      color: #f8fafc;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .term-popover-body {
+      display: block;
+      color: #94a3b8;
+    }
+
+    .term-popover-rows {
+      display: grid;
+      gap: 3px;
+      margin-top: 7px;
+      padding-top: 6px;
+      border-top: 1px solid #1f2a44;
+    }
+
+    .term-popover-row {
+      display: grid;
+      grid-template-columns: 64px minmax(0, 1fr);
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .term-popover-row span:first-child {
+      color: #64748b;
+    }
+
+    .term-popover-row span:last-child {
+      min-width: 0;
+      color: #dbeafe;
+    }
+
     .stat-value {
       font-size: 16px;
       font-weight: 700;
@@ -307,6 +424,10 @@
       color: var(--text-dim);
     }
 
+    .bottleneck-row {
+      grid-template-columns: 24px 1fr 42px;
+    }
+
     .status-pill {
       border-radius: 999px;
       padding: 1px 6px;
@@ -342,11 +463,17 @@
     }
 
     .fit-tile {
+      position: relative;
       min-width: 0;
       border: 1px solid #26314d;
       border-radius: 5px;
       background: #0d1322;
       padding: 5px;
+    }
+
+    .fit-tile:hover,
+    .fit-tile:focus-within {
+      z-index: 90;
     }
 
     .fit-tile-head {
@@ -772,32 +899,30 @@
       </div>
 
       <div class="mb-3">
-        <div class="section-title">Workload Target</div>
+        <div class="section-title">Use Case</div>
         <select id="workload-select"></select>
       </div>
 
-      <div class="mb-3">
-        <div class="section-title">RAID</div>
-        <select id="raid-select"></select>
-      </div>
-
       <div class="mb-3 p-2 rounded border border-gray-800 bg-gray-900/50">
-        <div class="section-title">Apex X16 Gen5 AIC</div>
-        <label class="toggle-label">
-          <input type="checkbox" id="module-toggle">
-          <span>Install AIC (+16 M.2 NVMe)</span>
-        </label>
+        <div class="section-title">Expansion</div>
+        <select id="expansion-select"></select>
         <div id="module-info" class="text-xs text-gray-500 mt-1 font-mono"></div>
       </div>
 
+      <div class="mb-2">
+        <div class="section-title">Fill Bays</div>
+        <select id="fill-strategy-select"></select>
+        <select id="fill-drive-select" class="mt-1" style="display: none;"></select>
+      </div>
+
       <div class="mb-2 flex gap-2">
-        <button id="fill-all-btn" class="btn flex-1">Fill All</button>
+        <button id="fill-all-btn" class="btn flex-1">Fill Empty</button>
         <button id="clear-all-btn" class="btn flex-1">Clear All</button>
       </div>
 
       <div class="mb-2">
-        <div class="section-title">Consumer Retail SSDs</div>
-        <div class="hint mb-2">Amazon/eBay-sourceable · drag onto compatible bay</div>
+        <div class="section-title">Drive Catalog</div>
+        <div class="hint mb-2">Amazon/eBay-sourceable · drop on rack to auto-place</div>
       </div>
       <div id="drive-palette" class="space-y-1"></div>
     </div>
@@ -836,6 +961,6 @@
     </div>
   </div>
 
-  <script type="module" src="./js/app.js?v=15"></script>
+  <script type="module" src="./js/app.js?v=31"></script>
 </body>
 </html>

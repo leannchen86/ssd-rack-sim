@@ -903,6 +903,12 @@
         <select id="workload-select"></select>
       </div>
 
+      <div class="mb-3">
+        <div class="section-title">Network Path</div>
+        <select id="network-select"></select>
+        <div id="network-info" class="hint mt-1"></div>
+      </div>
+
       <div class="mb-3 p-2 rounded border border-gray-800 bg-gray-900/50">
         <div class="section-title">Expansion</div>
         <select id="expansion-select"></select>
@@ -913,6 +919,7 @@
         <div class="section-title">Fill Bays</div>
         <select id="fill-strategy-select"></select>
         <select id="fill-drive-select" class="mt-1" style="display: none;"></select>
+        <div id="fill-strategy-info" class="hint mt-1"></div>
       </div>
 
       <div class="mb-2 flex gap-2">
@@ -961,6 +968,6 @@
     </div>
   </div>
 
-  <script type="module" src="./js/app.js?v=34"></script>
+  <script type="module" src="./js/app.js?v=35"></script>
 </body>
 </html>

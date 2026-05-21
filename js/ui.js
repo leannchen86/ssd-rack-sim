@@ -1,6 +1,6 @@
 // ui.js — DOM-based UI panels
 // Server selector, bay config, workload, RAID, drive palette, stats, insights, drive info
-import { EventBus, RAID_MODES, buildBays } from './state.js?v=34';
+import { EventBus, RAID_MODES, buildBays } from './state.js?v=35';
 
 // NVMe is backwards compatible — PCIe 4 drives work in PCIe 5 bays
 function interfaceCompatible(driveIf, bayIf) {
@@ -35,9 +35,11 @@ export class UI {
       workloadSelect: document.getElementById('workload-select'),
       expansionSelect: document.getElementById('expansion-select'),
       networkSelect: document.getElementById('network-select'),
+      networkInfo: document.getElementById('network-info'),
       coolingSelect: document.getElementById('cooling-select'),
       fillStrategySelect: document.getElementById('fill-strategy-select'),
       fillDriveSelect: document.getElementById('fill-drive-select'),
+      fillStrategyInfo: document.getElementById('fill-strategy-info'),
       moduleInfo: document.getElementById('module-info'),
       drivePalette: document.getElementById('drive-palette'),
       statsPanel: document.getElementById('stats-panel'),
@@ -292,6 +294,7 @@ export class UI {
         : value === 'local'
           ? 'local'
           : Number(value);
+      this._updateNetworkInfo();
       EventBus.emit('network:change');
     });
     this._updateNetworkSelect();
@@ -312,6 +315,36 @@ export class UI {
       <option value="local">Local only / no cap</option>
     `;
     sel.value = selected;
+    this._updateNetworkInfo();
+  }
+
+  _updateNetworkInfo(stats = null) {
+    const el = this.els.networkInfo;
+    if (!el) return;
+
+    const value = this.state.networkGbpsOverride;
+    const defaultGbps = this.state.workload?.modelAssumptions?.networkGbps || this.state.server?.networkGbps || 25;
+    const effectiveGbps = value === 'local'
+      ? Infinity
+      : Number.isFinite(value)
+        ? value
+        : defaultGbps;
+
+    if (!this.state.server) {
+      el.textContent = `Default is ${defaultGbps}GbE until a server is selected.`;
+      return;
+    }
+
+    if (!Number.isFinite(effectiveGbps)) {
+      el.textContent = 'No network cap: useful for testing the disk/server ceiling.';
+      return;
+    }
+
+    const effectiveGBs = ((effectiveGbps / 8) * 0.92).toFixed(1);
+    const suffix = stats?.driveCount
+      ? ` Visible read is ${this._formatGBs(stats.bottleneckReadGBs)}.`
+      : '';
+    el.textContent = `${effectiveGbps}GbE models about ${effectiveGBs} GB/s usable path bandwidth.${suffix}`;
   }
 
   // === COOLING ===
@@ -335,13 +368,13 @@ export class UI {
     const strategy = this.els.fillStrategySelect;
     if (!strategy) return;
     strategy.innerHTML = `
-      <option value="use-case">Best fit for use case</option>
-      <option value="value">Lowest $/TB</option>
-      <option value="capacity">Largest drive size</option>
-      <option value="sustained-write">Fastest sustained write</option>
-      <option value="random-read">Highest random read IOPS</option>
-      <option value="endurance">Highest endurance</option>
-      <option value="specific">Specific drive model</option>
+      <option value="use-case">Balanced for use case</option>
+      <option value="value">Cheapest $/TB</option>
+      <option value="capacity">Most capacity</option>
+      <option value="sustained-write">Fastest long writes</option>
+      <option value="random-read">Fastest reads</option>
+      <option value="endurance">Longest life</option>
+      <option value="specific">Pick exact model</option>
     `;
     strategy.value = this.state.fillStrategy || 'use-case';
     strategy.addEventListener('change', () => {
@@ -387,6 +420,80 @@ export class UI {
       : drives[0]?.id || null;
     this.state.fillDriveId = current;
     driveSelect.value = current || '';
+    this._updateFillStrategyInfo();
+  }
+
+  _fillStrategyMeta(strategy) {
+    return {
+      'use-case': {
+        name: 'Balanced',
+        detail: this.state.workload
+          ? `Weights ${this.state.workload.name} priorities: cost, capacity, sustained write, random reads, endurance, and latency.`
+          : 'Balances price, capacity, write speed, reads, endurance, and latency without a selected use case.',
+      },
+      value: {
+        name: 'Cheapest',
+        detail: 'Prioritizes the lowest purchase price per usable raw TB.',
+      },
+      capacity: {
+        name: 'Capacity',
+        detail: 'Prioritizes the largest individual drive size, using $/TB as a tiebreaker.',
+      },
+      'sustained-write': {
+        name: 'Long writes',
+        detail: 'Prioritizes estimated post-cache sustained write speed, then endurance.',
+      },
+      'random-read': {
+        name: 'Reads',
+        detail: 'Prioritizes random-read IOPS and favors NVMe where compatible.',
+      },
+      endurance: {
+        name: 'Endurance',
+        detail: 'Prioritizes DWPD and TBW for write-heavy use cases.',
+      },
+      specific: {
+        name: 'Exact model',
+        detail: 'Uses the selected SSD model anywhere it fits.',
+      },
+    }[strategy] || {
+      name: 'Fill',
+      detail: 'Chooses compatible retail SSDs for empty bays.',
+    };
+  }
+
+  _fillPreviewText() {
+    if (!this.state.server) return 'Select a server to preview which SSDs Fill Empty will use.';
+
+    const emptyBays = this.state.bays.filter(b => !b.drive);
+    if (!emptyBays.length) return 'All bays are filled. Clear bays or remove a drive to preview another preset.';
+
+    const picks = [];
+    for (const bay of emptyBays) {
+      const drive = this._pickFillDriveForBay(bay);
+      if (!drive) continue;
+      const existing = picks.find(p => p.drive.id === drive.id);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        picks.push({ drive, count: 1 });
+      }
+    }
+
+    if (!picks.length) return 'No compatible retail SSDs are available for the remaining empty bays.';
+
+    return `Next fill: ${picks.slice(0, 3).map(({ drive, count }) => {
+      const pricePerTB = Math.round(drive.priceUSD / drive.capacityTB);
+      return `${count}× ${this._driveDisplayName(drive)} ${this._driveCapacityLabel(drive)} ($${pricePerTB}/TB)`;
+    }).join(' · ')}${picks.length > 3 ? ' · ...' : ''}`;
+  }
+
+  _updateFillStrategyInfo() {
+    const el = this.els.fillStrategyInfo;
+    const strategy = this.els.fillStrategySelect;
+    if (!el || !strategy) return;
+
+    const meta = this._fillStrategyMeta(strategy.value || this.state.fillStrategy || 'use-case');
+    el.textContent = `${meta.name}: ${meta.detail} ${this._fillPreviewText()}`;
   }
 
   _updateModuleInfo() {
@@ -861,7 +968,9 @@ export class UI {
 
   // === REFRESH ALL PANELS ===
   refresh() {
-    this.updateStats();
+    const stats = this.updateStats();
+    this._updateNetworkInfo(stats);
+    this._updateFillStrategyInfo();
     this.updateFitness();
     this.updateDriveInfo();
     this.updateInsights();

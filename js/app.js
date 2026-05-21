@@ -1,15 +1,24 @@
 // app.js — Main entry point
 // Loads data, wires state/renderer/UI/insights, runs render loop
-import { createState, computeStats, EventBus } from './state.js?v=31';
-import { RackRenderer } from './renderer.js?v=31';
-import { UI } from './ui.js?v=31';
-import { generateInsights, computeWorkloadFitness } from './insights.js?v=31';
+import { createState, computeStats, EventBus } from './state.js?v=33';
+import { RackRenderer } from './renderer.js?v=33';
+import { UI } from './ui.js?v=33';
+import { generateInsights, computeWorkloadFitness } from './insights.js?v=33';
 
 function interfaceCompatible(driveIf, bayIf) {
   if (driveIf === bayIf) return true;
   if (driveIf === 'NVMe PCIe 4' && bayIf === 'NVMe PCIe 5') return true;
   if (driveIf === 'NVMe PCIe 3' && (bayIf === 'NVMe PCIe 4' || bayIf === 'NVMe PCIe 5')) return true;
   return false;
+}
+
+function formFactorCompatible(drive, bay) {
+  if (drive.formFactor === bay.formFactor) return true;
+  return drive.formFactor === '2.5"' && bay.formFactor === '3.5"' && drive.interface === 'SATA III' && bay.interface === 'SATA III';
+}
+
+function driveCompatibleWithBay(drive, bay) {
+  return formFactorCompatible(drive, bay) && interfaceCompatible(drive.interface, bay.interface);
 }
 
 async function loadJSON(path) {
@@ -87,19 +96,17 @@ async function main() {
     if (!drive) return -1;
     const from = Math.max(0, startIndex);
     let bay = state.bays.findIndex((b, i) =>
-      i >= from && !b.drive && b.formFactor === drive.formFactor && interfaceCompatible(drive.interface, b.interface)
+      i >= from && !b.drive && driveCompatibleWithBay(drive, b)
     );
     if (bay >= 0) return bay;
-    bay = state.bays.findIndex(b =>
-      !b.drive && b.formFactor === drive.formFactor && interfaceCompatible(drive.interface, b.interface)
-    );
+    bay = state.bays.findIndex(b => !b.drive && driveCompatibleWithBay(drive, b));
     return bay;
   }
 
   function placeDriveInBay(drive, bayIndex) {
     if (!drive || bayIndex < 0 || !state.bays[bayIndex]) return false;
     const bay = state.bays[bayIndex];
-    if (bay.formFactor !== drive.formFactor || !interfaceCompatible(drive.interface, bay.interface)) {
+    if (!driveCompatibleWithBay(drive, bay)) {
       return false;
     }
 

@@ -1,120 +1,93 @@
 # SSD Rack Simulator
 
-Interactive single-page web app for visualizing SSD procurement decisions in data center environments. Drag drives into server bays, select use-case presets, and see real-time cost, performance, and supply chain analysis.
+A browser-only planning tool for exploring SSD choices in real server chassis. Pick an owned or new server, choose a workload, place compatible consumer SSDs into bays, and see capacity, cost, bandwidth, endurance, risk, and workload fit update live.
 
-Built to help infrastructure engineers understand the tradeoffs between SATA vs NVMe, TLC vs QLC, retail sourcing risk, and legacy fleet vs new hardware — without spreadsheets.
-
-**🔗 Live demo: [leannchen86.github.io/ssd-rack-sim](https://leannchen86.github.io/ssd-rack-sim/)**
+Live demo: [leannchen86.github.io/ssd-rack-sim](https://leannchen86.github.io/ssd-rack-sim/)
 
 ## Quick Start
 
-Run locally from the project root:
+Run from the project root:
 
 ```bash
+source .venv/bin/activate
 python3 -m http.server 8080
 ```
 
-Open [http://localhost:8080](http://localhost:8080). No build step, no dependencies to install.
+Open [http://localhost:8080](http://localhost:8080).
 
-## What It Does
+The main app has no build step. Tailwind is loaded from a CDN, and the JavaScript is plain ES modules.
 
-**Pick a server** from the catalog (Dell PowerEdge, Supermicro) — including legacy owned fleet and new purchase options with different bay configurations.
+## What You Can Model
 
-**Drag SSDs into bays** from the drive palette. The simulator enforces form factor and interface compatibility (2.5" SATA, M.2 NVMe, U.2, E3.S) with PCIe backwards compatibility (Gen4 drives work in Gen5 bays).
+- Owned Dell fleet reuse vs new Dell/Supermicro purchase options that match the consumer-retail drive catalog
+- Server bay configs, form factors, SATA/NVMe compatibility, PCIe generation fallback, and 2.5" SATA drives in 3.5" bays via tray/carrier
+- Background protection math for usable capacity and write penalties
+- Optional 16-slot M.2 NVMe PCIe expansion card when a server has a free x16 slot
+- Workload profiles for archive, search/web serving, low-latency app data, and AI scratch
+- Bottleneck path, power/cooling cost, rebuild exposure, and supply concentration
+- Auto-fill strategies: workload fit, lowest $/TB, largest drive, sustained write, random read, endurance, or a specific model
 
-**Select a use case** (bulk storage, search/web serving, database/app data, AI training scratch) and the fitness panel shows green/yellow/red for each metric against that preset's requirements.
+The results are planning signals, not benchmark results or live procurement quotes. Retail prices are snapshots from the `priceSource` fields in the drive catalog.
 
-**See live stats** as you configure:
-- Raw and usable capacity (RAID-adjusted)
-- Aggregate read, burst write, and estimated sustained post-cache write bandwidth
-- Realistic throughput with RAID write penalties (RAID5 = 4x write amplification, RAID10 = 2x)
-- RAID rebuild time plus approximate degraded-window second-failure exposure
-- Cost breakdown: drives + chassis + expansion modules, $/TB, amortized $/TB/year
-- Power consumption, estimated power/cooling cost, bottleneck path, supply risk scoring, vendor/controller/NAND concentration
-- Use-case-driven wear lifespan and heuristic p99 read latency class
+## Main Screens
 
-**Read contextual insights** — the reasoning engine generates tradeoff analysis based on your configuration: use-case anti-patterns, SATA-to-NVMe migration advice, expansion-card economics, supply chain warnings, and data-protection recommendations.
+- `index.html`: the primary rack simulator with a left control panel, center canvas rack view, live stat strip, and right-side tradeoff analysis.
+- `lego.html`: a playful brick-style chassis sandbox that uses the same drive/server/module data and is covered by Playwright tests.
 
-## Data Catalog
+## Catalog Snapshot
 
-| Category | Count | Details |
-|----------|-------|---------|
-| Drives | 19 | Consumer retail SSDs only: SATA, Gen4 M.2, and Gen5 M.2 options sourced from Amazon/eBay-style channels |
-| Servers | 10 | Dell T620/T630/R740xd/R750xd (owned), R7725 (5 bay configs), R7725xd, Supermicro ASG/SSG |
-| Use cases | 4 | Bulk Storage / Archive, Search / Web Serving, Database / Low-Latency App, AI Training Scratch |
-| Controllers | 11 | Phison S11 through X2, Samsung MKX/Pascal, Silicon Motion SM2259 |
-| Expansion modules | 1 | Generic 16x M.2 NVMe PCIe card with PCIe-gen-aware bandwidth caps |
+| Data file | Contents |
+| --- | --- |
+| `data/drives.json` | 19 consumer SSDs: SATA, Gen4 M.2, and Gen5 M.2 |
+| `data/servers.json` | 10 server records; the default selector hides U.2/E3.S-only options until an enterprise drive catalog is enabled |
+| `data/workloads.json` | 4 workload profiles with requirements, assumptions, priorities, and anti-patterns |
+| `data/controllers.json` | 11 SSD controller reference entries |
+| `data/modules.json` | 1 PCIe add-in card module |
+| `data/chassis.json` | 5 reference chassis templates |
 
-### Pricing Integrity
+## Repo Map
 
-All drive prices include a `priceSource` field documenting where the price came from. The active drive palette is limited to consumer drives with non-zero retail pricing. Current sourcing:
-
-- **Retail marketplaces** — Amazon, eBay, Newegg, Best Buy, B&H, and public price trackers as of May 2026
-- **Excluded** — enterprise, industrial, specialized AI, and unpriced drives
-
-## Architecture
-
-```
-index.html          Single page, Tailwind CSS (CDN), 4-column layout
-js/
-  state.js          Proxy-based reactive state, EventBus pub/sub, stat computation
-  renderer.js       Canvas 2D rack renderer (60fps rAF), chassis + module sections
-  ui.js             DOM panels: selectors, drive palette, stats, fitness, insights
-  insights.js       Reasoning engine: use-case fit, anti-patterns, tradeoff analysis
-  app.js            Glue: loads JSON data, wires events, runs render loop
-data/
-  drives.json       Drive catalog (consumer retail SSDs with full specs)
-  servers.json      Server catalog (bay configs, PCIe lanes, bandwidth limits)
-  controllers.json  SSD controller specs (Phison, Samsung, Silicon Motion)
-  modules.json      PCIe expansion cards
-  workloads.json    Use-case profiles (requirements, priorities, anti-patterns)
+```text
+index.html          Main simulator shell and layout styles
+lego.html           Brick-style chassis sandbox
+js/app.js           Loads JSON, wires UI/state/renderer, starts render loop
+js/state.js         Reactive state, event bus, bay builder, stat computation
+js/renderer.js      Canvas 2D chassis and drive-bay renderer
+js/ui.js            DOM controls, drive palette, stats, fitness, insights panels
+js/insights.js      Tradeoff and workload-fit reasoning engine
+data/*.json         Drive, server, controller, module, workload, and chassis data
+tests/lego.spec.js  Playwright coverage for the Lego sandbox
 ```
 
-**Stack**: Vanilla JS (ES modules), Canvas 2D, Tailwind CSS via CDN. No framework. No build step. No node_modules.
+## Running Tests
 
-### Key Design Decisions
+Playwright is only needed for tests:
 
-- **Canvas for rack visualization** — 60fps render loop draws drive bays with hit testing for mouse interaction. DOM updates only fire on state changes via EventBus.
-- **Proxy-based reactivity** — `state.raidMode = 'RAID5'` auto-emits `state:raidMode` event. Nested mutations (bay assignments) require manual `EventBus.emit('bay:update')`.
-- **SATA bandwidth model** — Each drive gets a dedicated 600 MB/s SATA link (not a shared bus), total capped by HBA controller throughput. This matches real hardware behavior.
-- **RAID write penalties** — Applied multiplicatively: RAID5 effective write = 25% of raw, RAID10 = 50%. Rebuild times vary by mode (RAID10: 200 MB/s mirror-pair, RAID5: 60 MB/s degrading with array size).
-- **Realism approximations** — Consumer SSDs are adjusted for post-SLC-cache sustained writes, low-queue-depth IOPS, heuristic p99 read latency, TBW burn-down from use-case writes/day, server/network bottlenecks, background thermal pressure, energy cost with PUE, and simple AFR-based rebuild exposure. These are planning signals, not benchmark replacements.
+```bash
+source .venv/bin/activate
+npm install
+npm test
+```
+
+`npm test` runs the `lego.html` tests and starts or reuses a local server on port `8080`.
 
 ## Adding Data
 
-**Drive**: Add an entry to `data/drives.json` — auto-picked up by the app. Required fields: `id`, `name`, `vendor`, `capacityTB`, `interface`, `formFactor`, `priceUSD`, `priceSource`, `seqReadMBs`, `seqWriteMBs`, `random4KReadIOPS`, `random4KWriteIOPS`, `nandType`, `controller`, `controllerVendor`, `tbw`, `dwpd`, `powerW`, `supplyRisk`, `category`, `color`. Drives only appear in the active palette when `category` is `consumer` and `priceUSD` is greater than 0.
+Add drives in `data/drives.json`. The active palette shows drives where `category` is `consumer` and `priceUSD` is greater than `0`. Include specs for capacity, interface, form factor, pricing source, performance, NAND/controller, endurance, power, supply risk, and display color.
 
-**Server**: Add to `data/servers.json`. Set `owned: true` and `priceUSD: 0` for existing fleet. Define `bays` array with `count`, `formFactor`, `interface`, `perDriveMaxMBs` (600 for SATA). Set `maxBandwidthGBs` for controller cap.
+Add servers in `data/servers.json`. Use `owned: true` and `priceUSD: 0` for existing fleet hardware. Define `bays` or `bayConfigs`, PCIe slots, bandwidth caps, network assumptions, power, and thermal design.
 
-**Use case**: Add to `data/workloads.json`. Define `requirements` (min capacity, IOPS, DWPD), `modelAssumptions` (write TB/day, write amplification, network Gbps, target p99 latency, typical queue depth), `priorities` per metric, and `antiPatterns` array for the insights engine.
+Add workloads in `data/workloads.json`. Define `requirements`, `modelAssumptions`, `priorities`, and `antiPatterns`; the fitness panel and insights engine use these fields directly.
 
-## Known Limitations
+Add expansion cards in `data/modules.json`. The UI currently models one add-in card at a time and expects a free rear x16 slot.
 
-These are documented critique points from accuracy audits. The simulator is a pedagogical tool, not a procurement engine — some behaviors are simplified or still being improved.
+## Modeling Caveats
 
-**Still to fix:**
-- Thermal behavior is still heuristic and profile-based, not a vendor fan-curve or CFD model
-- PCIe lane budget not enforced (expansion cards + NVMe bays can oversubscribe host lanes)
-- No hot/cold data tiering support (can't express "100TB QLC cold + 4TB TLC hot" architectures)
-- AI training scratch DWPD threshold is a planning default; sustained training pipelines may require a stricter endurance target
-- Retail SSD pricing moves quickly, especially on marketplace listings; use `priceSource` as a snapshot, not a live quote
-
-**Already addressed:**
-- ✓ RAID write penalty applied to bandwidth calculations (RAID5 = 25%, RAID10 = 50%)
-- ✓ SATA bandwidth modeled as per-drive dedicated links capped by HBA controller (not shared bus)
-- ✓ Burst vs sustained write estimates model consumer SLC-cache cliffs
-- ✓ Low-queue-depth IOPS and latency-class estimates make websearch less throughput-only
-- ✓ Use-case write rate estimates TBW lifespan over time
-- ✓ Bottleneck path compares SSD pool speed, server bus/HBA limits, and modeled network exposure
-- ✓ Power/cooling cost included in annualized TCO signal
-- ✓ Thermal pressure is modeled in the background and only surfaces when a build is likely to throttle
-- ✓ Rebuild time varies by RAID mode (RAID10 mirror-pair vs RAID5 whole-array degradation)
-- ✓ Rebuild exposure includes approximate second-failure and read-error risk signals
-- ✓ Supply risk uses worst-case across the array (not averaged)
-- ✓ TCO amortization split: drives 3.5yr, chassis/expansion 5yr
-- ✓ NVMe price parity computed from catalog (not hardcoded)
-- ✓ Active palette excludes unpriced, enterprise, industrial, and specialized drives
+- Thermal, p99 latency, AFR, rebuild exposure, and post-cache sustained writes are heuristics.
+- PCIe expansion checks slot availability, but lane sharing is still simplified.
+- There is no hot/cold tiering model or live marketplace price refresh.
+- Consumer SSD replacement risk is intentionally surfaced because marketplace supply can move quickly.
 
 ## License
 
-MIT
+ISC, per `package.json`.

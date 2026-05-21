@@ -1,6 +1,6 @@
 // ui.js — DOM-based UI panels
 // Server selector, bay config, workload, RAID, drive palette, stats, insights, drive info
-import { EventBus, RAID_MODES, buildBays } from './state.js?v=31';
+import { EventBus, RAID_MODES, buildBays } from './state.js?v=33';
 
 // NVMe is backwards compatible — PCIe 4 drives work in PCIe 5 bays
 function interfaceCompatible(driveIf, bayIf) {
@@ -9,6 +9,15 @@ function interfaceCompatible(driveIf, bayIf) {
   if (driveIf === 'NVMe PCIe 4' && bayIf === 'NVMe PCIe 5') return true;
   if (driveIf === 'NVMe PCIe 3' && (bayIf === 'NVMe PCIe 4' || bayIf === 'NVMe PCIe 5')) return true;
   return false;
+}
+
+function formFactorCompatible(drive, bay) {
+  if (drive.formFactor === bay.formFactor) return true;
+  return drive.formFactor === '2.5"' && bay.formFactor === '3.5"' && drive.interface === 'SATA III' && bay.interface === 'SATA III';
+}
+
+function driveCompatibleWithBay(drive, bay) {
+  return formFactorCompatible(drive, bay) && interfaceCompatible(drive.interface, bay.interface);
 }
 
 export class UI {
@@ -62,8 +71,9 @@ export class UI {
     sel.innerHTML = '<option value="">— pick a server —</option>';
 
     // Group by owned vs new
-    const owned = this.state.serverCatalog.filter(s => s.owned);
-    const available = this.state.serverCatalog.filter(s => !s.owned);
+    const visibleServers = this._retailCompatibleServers();
+    const owned = visibleServers.filter(s => s.owned);
+    const available = visibleServers.filter(s => !s.owned);
 
     if (owned.length) {
       const g = document.createElement('optgroup');
@@ -81,7 +91,8 @@ export class UI {
       const g = document.createElement('optgroup');
       g.label = 'NEW PURCHASE OPTIONS';
       available.forEach(s => {
-        const bays = s.bayConfigs ? s.bayConfigs[0].name : `${s.bays[0].count}× ${s.bays[0].formFactor}`;
+        const firstConfig = this._supportedBayConfigs(s)[0];
+        const bays = firstConfig ? firstConfig.name : `${s.bays[0].count}× ${s.bays[0].formFactor}`;
         const o = document.createElement('option');
         o.value = s.id;
         o.textContent = `${s.name}  ($${s.priceUSD.toLocaleString()}, ${bays})`;
@@ -94,7 +105,7 @@ export class UI {
       const server = this.state.serverCatalog.find(s => s.id === sel.value) || null;
       this.state.server = server;
       this.state.modules = [];
-      this.state.activeBayConfig = server?.bayConfigs ? server.bayConfigs[0].id : null;
+      this.state.activeBayConfig = this._defaultBayConfig(server);
       this._rebuildBays();
       this._updateBayConfigSelect();
       this._updateExpansionSelect();
@@ -120,21 +131,48 @@ export class UI {
     const server = this.state.server;
     const group = this.els.bayConfigGroup;
     const sel = this.els.bayConfigSelect;
+    const configs = this._supportedBayConfigs(server);
 
-    if (!server?.bayConfigs) {
+    if (!configs.length) {
       group.style.display = 'none';
       return;
     }
 
     group.style.display = 'block';
     sel.innerHTML = '';
-    server.bayConfigs.forEach(c => {
+    if (!configs.some(c => c.id === this.state.activeBayConfig)) {
+      this.state.activeBayConfig = configs[0].id;
+    }
+    configs.forEach(c => {
       const o = document.createElement('option');
       o.value = c.id;
       o.textContent = c.name;
       if (c.id === this.state.activeBayConfig) o.selected = true;
       sel.appendChild(o);
     });
+  }
+
+  _retailCompatibleServers() {
+    return this.state.serverCatalog.filter(server => {
+      if (server.bayConfigs) return this._supportedBayConfigs(server).length > 0;
+      return this._baySpecsRetailCompatible(server.bays || []);
+    });
+  }
+
+  _supportedBayConfigs(server) {
+    if (!server?.bayConfigs) return [];
+    return server.bayConfigs.filter(config => this._baySpecsRetailCompatible(config.bays || []));
+  }
+
+  _defaultBayConfig(server) {
+    if (!server?.bayConfigs) return null;
+    return this._supportedBayConfigs(server)[0]?.id || null;
+  }
+
+  _baySpecsRetailCompatible(baySpecs) {
+    return baySpecs.length > 0 && baySpecs.every(spec =>
+      this._retailConsumerDrives().some(drive => driveCompatibleWithBay(drive, spec))
+    );
   }
 
   // === RAID ===
@@ -402,6 +440,13 @@ export class UI {
       return;
     }
 
+    if (compatible.length === 0 && incompatible.length > 0) {
+      const div = document.createElement('div');
+      div.className = 'text-yellow-500 text-xs p-2 rounded border border-yellow-900/60 bg-yellow-950/20 font-mono leading-relaxed';
+      div.textContent = this._noCompatibleDriveReason();
+      container.appendChild(div);
+    }
+
     compatible.forEach(d => container.appendChild(this._createDriveCard(d, false)));
 
     if (incompatible.length > 0) {
@@ -411,6 +456,21 @@ export class UI {
       container.appendChild(div);
       incompatible.forEach(d => container.appendChild(this._createDriveCard(d, true)));
     }
+  }
+
+  _noCompatibleDriveReason() {
+    const bays = this.state.bays || [];
+    const formFactors = new Set(bays.map(b => b.formFactor));
+    if (formFactors.has('E3.S')) {
+      return 'No direct consumer-retail E3.S SSDs in this catalog. E3.S is mostly an enterprise/datacenter form factor, so this server needs enterprise SSD sourcing or a different bay config.';
+    }
+    if (formFactors.has('U.2')) {
+      return 'No direct consumer-retail U.2 SSDs in this catalog. Consumer NVMe is mostly M.2; U.2 bays usually mean enterprise/datacenter drives.';
+    }
+    if (formFactors.has('M.2 2280')) {
+      return 'No compatible M.2 retail SSDs match this expansion or bay interface.';
+    }
+    return 'No compatible consumer-retail SSDs match this server bay layout.';
   }
 
   _createDriveCard(drive, disabled) {
@@ -502,16 +562,14 @@ export class UI {
       card.addEventListener('click', () => {
         let bay = this.state.selectedBay;
         if (bay < 0 || !this.state.bays[bay]) {
-          bay = this.state.bays.findIndex(b =>
-            !b.drive && b.formFactor === drive.formFactor && interfaceCompatible(drive.interface, b.interface)
-          );
+          bay = this.state.bays.findIndex(b => !b.drive && driveCompatibleWithBay(drive, b));
         }
         if (bay >= 0 && this.state.bays[bay]) {
           const b = this.state.bays[bay];
-          if (b.formFactor === drive.formFactor && interfaceCompatible(drive.interface, b.interface)) {
+          if (driveCompatibleWithBay(drive, b)) {
             b.drive = drive;
             const next = this.state.bays.findIndex((b2, i) =>
-              i > bay && !b2.drive && b2.formFactor === drive.formFactor && interfaceCompatible(drive.interface, b2.interface)
+              i > bay && !b2.drive && driveCompatibleWithBay(drive, b2)
             );
             this.state.selectedBay = next >= 0 ? next : -1;
             EventBus.emit('bay:update');
@@ -546,9 +604,7 @@ export class UI {
   }
 
   _compatibleDrivesForBay(bay) {
-    return this._retailConsumerDrives().filter(d =>
-      d.formFactor === bay.formFactor && interfaceCompatible(d.interface, bay.interface)
-    );
+    return this._retailConsumerDrives().filter(d => driveCompatibleWithBay(d, bay));
   }
 
   _estimateFillSustainedMBs(drive) {
@@ -623,9 +679,7 @@ export class UI {
   }
 
   _driveCompatWithBays(drive) {
-    return this.state.bays.some(b =>
-      b.formFactor === drive.formFactor && interfaceCompatible(drive.interface, b.interface)
-    );
+    return this.state.bays.some(b => driveCompatibleWithBay(drive, b));
   }
 
   _rebuildBays() {
@@ -1362,6 +1416,9 @@ export class UI {
       : 'Unpriced';
     const bayLabel = bay ? `${bay.source === 'module' ? 'Expansion' : 'Bay'} ${bay.bayIndex + 1}` : 'Selected bay';
     const controller = drive.controllerVendor || drive.controller || 'Unknown';
+    const adapterNote = bay && bay.formFactor === '3.5"' && drive.formFactor === '2.5"'
+      ? '<div class="text-blue-300 text-xs font-mono mt-1">Uses 2.5&quot;-to-3.5&quot; tray/carrier</div>'
+      : '';
 
     el.innerHTML = `
       <div class="makeup-card selected-drive-card">
@@ -1383,6 +1440,7 @@ export class UI {
           ${this._chip('DWPD', drive.dwpd, '#eab308', `${drive.tbw.toLocaleString()} TBW`)}
         </div>
         ${drive.middlewareRequired ? '<div class="text-green-400 text-xs font-mono mt-1">AI storage middleware</div>' : ''}
+        ${adapterNote}
       </div>
     `;
   }

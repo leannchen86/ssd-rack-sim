@@ -1,9 +1,9 @@
 // app.js — Main entry point
 // Loads data, wires state/renderer/UI/insights, runs render loop
-import { createState, computeStats, EventBus } from './state.js?v=33';
-import { RackRenderer } from './renderer.js?v=33';
-import { UI } from './ui.js?v=33';
-import { generateInsights, computeWorkloadFitness } from './insights.js?v=33';
+import { createState, computeStats, EventBus } from './state.js?v=34';
+import { RackRenderer } from './renderer.js?v=34';
+import { UI } from './ui.js?v=34';
+import { generateInsights, computeWorkloadFitness } from './insights.js?v=34';
 
 function interfaceCompatible(driveIf, bayIf) {
   if (driveIf === bayIf) return true;

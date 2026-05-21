@@ -186,7 +186,6 @@ function estimateDriveAfr(drive) {
   let afr = DEFAULT_CONSUMER_AFR;
   if (drive.nandType === 'QLC') afr += 0.003;
   if (isDramless(drive)) afr += 0.002;
-  if (drive.supplyRisk === 'high') afr += 0.002;
   return afr;
 }
 
@@ -308,7 +307,7 @@ export function computeStats(state) {
       driveCount: 0, rawTB: 0, usableTB: 0, totalCost: 0, costPerUsableTB: 0,
       aggSeqReadGBs: 0, aggSeqWriteGBs: 0, realisticReadGBs: 0, realisticWriteGBs: 0,
       chassisMaxBWGBs: 0, busSaturated: false, totalPowerW: 0, rebuildTimeHours: 0, rebuildDegraded: false, rebuildWarning: '',
-      raidValid: false, raidError: '', supplyRiskScore: 0, highRiskCount: 0,
+      raidValid: false, raidError: '',
       vendorConcentration: {}, nandVendorConcentration: {},
       driveCost: 0, chassisCost: 0, moduleCost: 0,
       costPerUsableTBYear5: 0,
@@ -525,12 +524,6 @@ export function computeStats(state) {
     ? (1 - Math.exp(-bitsReadDuringRebuild * DEFAULT_UBER)) * 100
     : 0;
 
-  // Supply risk — worst-case, not averaged
-  // A single high-risk drive compromises the whole array (any failure requires that SKU)
-  const riskMap = { low: 10, medium: 40, high: 80 };
-  const supplyRiskScore = filled.reduce((s, b) => Math.max(s, riskMap[b.drive.supplyRisk] || 50), 0);
-  const highRiskCount = filled.filter(b => b.drive.supplyRisk === 'high').length;
-
   // Vendor concentration
   const vendorConcentration = {};
   const nandVendorConcentration = {};
@@ -567,7 +560,7 @@ export function computeStats(state) {
     thermalThrottleFactor: thermal.thermalSustainedThrottleFactor,
     thermalBurstThrottleFactor: thermal.thermalBurstThrottleFactor,
     rebuildTimeHours, rebuildDegraded, rebuildWarning,
-    raidValid, raidError, supplyRiskScore, highRiskCount,
+    raidValid, raidError,
     expectedFailuresPerYear, rebuildSecondFailureRiskPct, ureDuringRebuildRiskPct,
     workloadWriteTBPerDay, minEnduranceYears, medianEnduranceYears,
     vendorConcentration, nandVendorConcentration, controllerVendorConcentration,

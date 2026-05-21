@@ -24,7 +24,7 @@ There is no build step for the app. It uses plain ES modules, Canvas 2D, and Tai
 - RAID0, RAID1, RAID5, RAID10, and JBOD capacity/performance tradeoffs
 - Optional M.2 NVMe PCIe expansion cards when a server has a free x16 slot
 - Workload fit for archive, search/web serving, low-latency app data, and AI scratch use cases
-- Cost, power/cooling, rebuild exposure, supply risk, controller/NAND/vendor concentration, and bottlenecks
+- Cost, power/cooling, rebuild exposure, controller/NAND/vendor concentration, and bottlenecks
 - Auto-fill strategies for quickly comparing value, capacity, write speed, random read, endurance, or specific drives
 
 The simulator is meant for planning and comparison, not final procurement or benchmarking. Retail prices are snapshots from the catalog data and may drift quickly.

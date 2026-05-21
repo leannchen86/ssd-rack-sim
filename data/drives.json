@@ -20,8 +20,6 @@
     "tbw": 2400,
     "dwpd": 0.3,
     "powerW": 4.0,
-    "supplyRisk": "high",
-    "supplyNote": "Consumer SATA benchmark drive, but 4TB retail pricing is inflated and stock is increasingly marketplace-driven.",
     "category": "consumer",
     "color": "#1a73e8"
   },
@@ -46,8 +44,6 @@
     "tbw": 2880,
     "dwpd": 0.3,
     "powerW": 4.2,
-    "supplyRisk": "high",
-    "supplyNote": "Largest common consumer SATA SSD. Usually sourced from Amazon/eBay marketplace stock; verify seller and SMART data.",
     "category": "consumer",
     "color": "#7e57c2"
   },
@@ -72,8 +68,6 @@
     "tbw": 360,
     "dwpd": 0.2,
     "powerW": 3.0,
-    "supplyRisk": "medium",
-    "supplyNote": "Long-running consumer SATA staple. Good for boot or light bay fill, but low capacity for rack storage.",
     "category": "consumer",
     "color": "#0ea5e9"
   },
@@ -98,8 +92,6 @@
     "tbw": 600,
     "dwpd": 0.1,
     "powerW": 3.3,
-    "supplyRisk": "medium",
-    "supplyNote": "Retail consumer SATA option with weak endurance for 4TB. Fine for read-mostly bulk, poor for sustained writes.",
     "category": "consumer",
     "color": "#2563eb"
   },
@@ -124,8 +116,6 @@
     "tbw": 600,
     "dwpd": 0.1,
     "powerW": 3.5,
-    "supplyRisk": "medium",
-    "supplyNote": "Consumer SATA drive still visible in retail channels, but high-capacity stock is uneven.",
     "category": "consumer",
     "color": "#ef4444"
   },
@@ -150,8 +140,6 @@
     "tbw": 900,
     "dwpd": 0.1,
     "powerW": 2.2,
-    "supplyRisk": "medium",
-    "supplyNote": "Budget consumer SATA. Attractive cost per TB, but DRAM-less/variable components make it a poor write-heavy choice.",
     "category": "consumer",
     "color": "#06b6d4"
   },
@@ -176,8 +164,6 @@
     "tbw": 300,
     "dwpd": 0.2,
     "powerW": 1.5,
-    "supplyRisk": "low",
-    "supplyNote": "Widely available consumer SATA budget drive. Useful as a baseline, not a dense rack-storage pick.",
     "category": "consumer",
     "color": "#38bdf8"
   },
@@ -202,8 +188,6 @@
     "tbw": 2400,
     "dwpd": 0.3,
     "powerW": 5.0,
-    "supplyRisk": "medium",
-    "supplyNote": "Strong consumer Gen4 value if sourced while retail inventory lasts. Micron/Crucial supply should be watched.",
     "category": "consumer",
     "color": "#22c55e"
   },
@@ -228,8 +212,6 @@
     "tbw": 2400,
     "dwpd": 0.3,
     "powerW": 5.5,
-    "supplyRisk": "low",
-    "supplyNote": "Mainstream high-end Gen4 consumer drive with broad Amazon/eBay availability and mature firmware.",
     "category": "consumer",
     "color": "#3b82f6"
   },
@@ -254,8 +236,6 @@
     "tbw": 2400,
     "dwpd": 0.3,
     "powerW": 5.8,
-    "supplyRisk": "low",
-    "supplyNote": "Common retail Gen4 performance drive. Good known-brand fallback when Samsung pricing spikes.",
     "category": "consumer",
     "color": "#111827"
   },
@@ -280,8 +260,6 @@
     "tbw": 2400,
     "dwpd": 0.3,
     "powerW": 4.8,
-    "supplyRisk": "medium",
-    "supplyNote": "Efficient DRAM-less Gen4 consumer drive. Watch price volatility in SanDisk/WD retail channels.",
     "category": "consumer",
     "color": "#334155"
   },
@@ -306,8 +284,6 @@
     "tbw": 3000,
     "dwpd": 0.4,
     "powerW": 4.4,
-    "supplyRisk": "medium",
-    "supplyNote": "Popular low-power consumer Gen4 option. Great value when genuine retail stock is available.",
     "category": "consumer",
     "color": "#10b981"
   },
@@ -332,8 +308,6 @@
     "tbw": 2400,
     "dwpd": 0.3,
     "powerW": 7.2,
-    "supplyRisk": "medium",
-    "supplyNote": "Fast consumer Gen5 retail option. Strong price/performance, but Micron consumer-channel continuity is uncertain.",
     "category": "consumer",
     "color": "#84cc16"
   },
@@ -358,8 +332,6 @@
     "tbw": 2400,
     "dwpd": 0.3,
     "powerW": 7.5,
-    "supplyRisk": "medium",
-    "supplyNote": "Current Samsung consumer Gen5 flagship. Amazon pricing is better than official store, but marketplace variation is high.",
     "category": "consumer",
     "color": "#4285f4"
   },
@@ -384,8 +356,6 @@
     "tbw": 4800,
     "dwpd": 0.3,
     "powerW": 8.5,
-    "supplyRisk": "medium",
-    "supplyNote": "High-density consumer M.2 option for expansion-card builds. Expensive, hot, and worth validating by seller before bulk purchase.",
     "category": "consumer",
     "color": "#60a5fa"
   },
@@ -410,8 +380,6 @@
     "tbw": 1200,
     "dwpd": 0.3,
     "powerW": 6.5,
-    "supplyRisk": "medium",
-    "supplyNote": "Retail Gen5 leader for performance per watt. 2TB is widely listed; 4TB pricing swings hard.",
     "category": "consumer",
     "color": "#0f172a"
   },
@@ -436,8 +404,6 @@
     "tbw": 4000,
     "dwpd": 0.5,
     "powerW": 7.1,
-    "supplyRisk": "medium",
-    "supplyNote": "High-end consumer Gen5 drive with strong endurance. Current Amazon pricing is volatile and often above peer drives.",
     "category": "consumer",
     "color": "#f97316"
   },
@@ -462,8 +428,6 @@
     "tbw": 2800,
     "dwpd": 0.4,
     "powerW": 6.5,
-    "supplyRisk": "medium",
-    "supplyNote": "Retail prosumer Gen5 flagship. Good performance, but heatsink and airflow matter in dense expansion-card layouts.",
     "category": "consumer",
     "color": "#f59e0b"
   },
@@ -488,8 +452,6 @@
     "tbw": 2400,
     "dwpd": 0.3,
     "powerW": 7.5,
-    "supplyRisk": "medium",
-    "supplyNote": "Amazon/eBay-sourced prosumer Gen5 option. Older E26 platform, but still useful as a retail fallback.",
     "category": "consumer",
     "color": "#a855f7"
   }

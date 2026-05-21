@@ -300,33 +300,15 @@ export function generateInsights(state, stats, workload) {
     }
   }
 
-  // === SUPPLY CHAIN ===
-  // Worst-case: any high-risk drive compromises the whole array
-  if (stats.highRiskCount > 0) {
-    insights.push({
-      severity: 'warning',
-      category: 'Supply Chain',
-      title: `${stats.highRiskCount} high-risk drive${stats.highRiskCount > 1 ? 's' : ''} in config`,
-      message: `Worst-case supply risk score: ${stats.supplyRiskScore.toFixed(0)}/100. Failure of any of these ${stats.highRiskCount} drive${stats.highRiskCount > 1 ? 's' : ''} may be hard to replace with the same SKU — plan for substitution or spares on hand.`,
-    });
-  } else if (stats.supplyRiskScore >= 40) {
-    insights.push({
-      severity: 'suggestion',
-      category: 'Supply Chain',
-      title: 'Medium supply risk drives present',
-      message: `Worst-case supply risk score: ${stats.supplyRiskScore.toFixed(0)}/100. Some drives have constrained supply. Consider keeping spares.`,
-    });
-  }
-
   // Single-vendor concentration
   for (const [vendor, count] of Object.entries(stats.vendorConcentration)) {
     const pct = count / stats.driveCount;
     if (pct >= 0.8 && stats.driveCount >= 4) {
       insights.push({
         severity: 'suggestion',
-        category: 'Supply Chain',
+        category: 'Concentration',
         title: `${vendor} concentration: ${(pct * 100).toFixed(0)}%`,
-        message: `${(pct * 100).toFixed(0)}% of drives from ${vendor}. If ${vendor} has supply issues, you have no fallback. Consider diversifying.`,
+        message: `${(pct * 100).toFixed(0)}% of drives are from ${vendor}. That can simplify qualification, but it reduces substitution flexibility if you later change models.`,
       });
     }
   }
@@ -335,14 +317,11 @@ export function generateInsights(state, stats, workload) {
   for (const [vendor, count] of Object.entries(stats.nandVendorConcentration)) {
     const pct = count / stats.driveCount;
     if (pct >= 0.8 && stats.driveCount >= 4) {
-      const note = vendor === 'Kioxia' ? ' Kioxia 2026 production already sold out.' :
-                   vendor === 'Micron' ? ' Micron is exiting consumer market.' :
-                   vendor === 'Samsung' ? ' Samsung allocating 90% of capex to HBM, not NAND.' : '';
       insights.push({
         severity: 'warning',
-        category: 'Supply Chain',
+        category: 'Concentration',
         title: `NAND source: ${(pct * 100).toFixed(0)}% ${vendor}`,
-        message: `All NAND from one fab.${note} A single-fab disruption takes down your entire resupply pipeline.`,
+        message: `Most drives rely on ${vendor} NAND. This is a concentration signal, not a live market-availability claim.`,
       });
     }
   }
@@ -353,7 +332,7 @@ export function generateInsights(state, stats, workload) {
     if (pct >= 0.8 && stats.driveCount >= 4) {
       insights.push({
         severity: 'suggestion',
-        category: 'Supply Chain',
+        category: 'Concentration',
         title: `Controller source: ${(pct * 100).toFixed(0)}% ${vendor}`,
         message: `Controller concentration is separate from NAND concentration. A firmware issue or qualification miss in ${vendor} controllers can affect most of the pool at once.`,
       });

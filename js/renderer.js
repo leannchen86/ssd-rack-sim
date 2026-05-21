@@ -919,8 +919,7 @@ export class RackRenderer {
       ctx.lineTo(labelX + labelW - 5, labelY + labelH * 0.32);
       ctx.stroke();
 
-      // Supply and activity indicators: green/amber/red like a chassis face.
-      this._drawStatusLed(ctx, bx + sw - inset * 0.72, by + sh - inset * 0.72, d.supplyRisk);
+      // Activity indicator mirrors the drive color without implying health or sourcing status.
       this._drawActivityLed(ctx, bx + inset * 0.72, by + sh - inset * 0.72, driveColor);
     } else {
       const recessGrad = ctx.createLinearGradient(faceX, faceY, faceX, faceY + faceH);
@@ -1024,7 +1023,6 @@ export class RackRenderer {
       ctx.textAlign = 'center';
       ctx.fillText(d.interface.replace('NVMe PCIe ', 'G'), faceX + faceW * 0.56, faceY + faceH / 2);
 
-      this._drawStatusLed(ctx, bx + sw - pad * 1.1, by + sh / 2, d.supplyRisk);
       this._drawActivityLed(ctx, bx + pad * 1.2, by + sh / 2, driveColor);
     } else {
       const recessGrad = ctx.createLinearGradient(faceX, faceY, faceX + faceW, faceY);
@@ -1123,7 +1121,6 @@ export class RackRenderer {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
     ctx.font = `${Math.max(6, Math.min(8, minDim * 0.16))}px "JetBrains Mono", monospace`;
     ctx.fillText(d.interface.replace('NVMe PCIe ', 'GEN'), stickX + stickW / 2, stickY + stickH * 0.75);
-    this._drawStatusLed(ctx, bx + sw - pad * 0.8, by + sh - pad * 0.8, d.supplyRisk);
   }
 
   _drawChip(ctx, x, y, w, h) {
@@ -1133,19 +1130,6 @@ export class RackRenderer {
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
     this._roundRect(ctx, x, y, w, h, 2);
     ctx.stroke();
-  }
-
-  _drawStatusLed(ctx, x, y, risk) {
-    const color = risk === 'high' ? COLORS.danger : risk === 'medium' ? COLORS.warning : COLORS.success;
-    const pulse = risk === 'high' ? Math.sin(this.pulsePhase) * 0.25 + 0.75 : 0.9;
-    ctx.save();
-    ctx.shadowColor = this._alpha(color, pulse);
-    ctx.shadowBlur = risk === 'high' ? 8 : 4;
-    ctx.fillStyle = this._alpha(color, pulse);
-    ctx.beginPath();
-    ctx.arc(x, y, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
   }
 
   _drawActivityLed(ctx, x, y, color) {

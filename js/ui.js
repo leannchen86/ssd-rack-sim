@@ -1,6 +1,6 @@
 // ui.js — DOM-based UI panels
 // Server selector, bay config, workload, RAID, drive palette, stats, insights, drive info
-import { EventBus, RAID_MODES, buildBays } from './state.js?v=33';
+import { EventBus, RAID_MODES, buildBays } from './state.js?v=34';
 
 // NVMe is backwards compatible — PCIe 4 drives work in PCIe 5 bays
 function interfaceCompatible(driveIf, bayIf) {
@@ -480,7 +480,7 @@ export class UI {
     card.dataset.driveId = drive.id;
     const displayName = this._driveDisplayName(drive);
     const capacityLabel = this._driveCapacityLabel(drive);
-    card.setAttribute('aria-label', `${displayName}, ${capacityLabel}, ${drive.interface}, ${drive.supplyRisk} supply risk`);
+    card.setAttribute('aria-label', `${displayName}, ${capacityLabel}, ${drive.interface}, ${drive.nandType}`);
 
     const mini = document.createElement('div');
     mini.className = 'relative flex-shrink-0 rounded-sm border border-gray-700 shadow-inner';
@@ -508,6 +508,8 @@ export class UI {
         <span>${drive.formFactor}</span>
         <span>·</span>
         <span>${drive.interface === 'SATA III' ? 'SATA' : drive.interface.replace('NVMe PCIe ', 'Gen')}</span>
+        <span>·</span>
+        <span>${drive.nandType}</span>
       </div>
       <div class="flex items-center justify-between gap-2 text-xs font-mono">
         <span class="text-gray-500">${read}</span>
@@ -515,19 +517,7 @@ export class UI {
       </div>
     `;
 
-    const risk = document.createElement('div');
-    risk.className = 'flex-shrink-0 self-stretch flex flex-col items-center justify-between py-1';
-    const rc = {
-      low: 'background:#4caf50;box-shadow:0 0 6px rgba(76,175,80,.75)',
-      medium: 'background:#ff9800;box-shadow:0 0 6px rgba(255,152,0,.7)',
-      high: 'background:#f44336;box-shadow:0 0 7px rgba(244,67,54,.85)'
-    }[drive.supplyRisk];
-    risk.innerHTML = `
-      <div class="rounded-full" style="width:7px;height:7px;${rc}" title="Supply: ${drive.supplyRisk}"></div>
-      <div class="text-gray-700 font-mono" style="font-size:8px;writing-mode:vertical-rl;letter-spacing:0">${drive.nandType}</div>
-    `;
-
-    card.append(mini, info, risk);
+    card.append(mini, info);
 
     if (!disabled) {
       card.draggable = true;
@@ -649,7 +639,6 @@ export class UI {
     };
     const qlcSensitive = weights.sustained + weights.endurance + weights.latency >= 5;
     const qlcFactor = drive.nandType === 'QLC' ? (qlcSensitive ? 0.72 : 0.9) : 1;
-    const supplyFactor = { low: 1, medium: 0.9, high: 0.78 }[drive.supplyRisk] || 0.85;
     const nvmeFactor = drive.interface === 'SATA III' ? 0.82 : 1;
 
     const score =
@@ -660,7 +649,7 @@ export class UI {
       weights.endurance * norm(drive.dwpd || 0, max(d => d.dwpd || 0)) +
       weights.latency * norm(drive.random4KReadIOPS || 0, max(d => d.random4KReadIOPS || 0)) * nvmeFactor;
 
-    return score * qlcFactor * supplyFactor;
+    return score * qlcFactor;
   }
 
   _pickFillDriveForBay(bay) {
@@ -818,14 +807,6 @@ export class UI {
       .slice(0, limit);
   }
 
-  _riskTone(risk) {
-    return {
-      low: { color: '#22c55e', text: 'text-green-400', label: 'LOW' },
-      medium: { color: '#f59e0b', text: 'text-yellow-400', label: 'MED' },
-      high: { color: '#ef4444', text: 'text-red-400', label: 'HIGH' },
-    }[risk] || { color: '#64748b', text: 'text-gray-500', label: 'UNK' };
-  }
-
   _chip(label, value, color = '#64748b', title = '') {
     const hasValue = value !== undefined && value !== null && value !== '';
     const text = label && hasValue ? `${label} ${value}` : (hasValue ? String(value) : label);
@@ -875,8 +856,7 @@ export class UI {
       .replace(/^SATA vs NVMe pricing:\s*/i, 'SATA/NVMe ')
       .replace(/^All-SATA config for non-bulk use case$/i, 'All-SATA strategy')
       .replace(/^All-SATA config for non-bulk workload$/i, 'All-SATA strategy')
-      .replace(/^Existing server\s+—\s+/i, '')
-      .replace(/^Medium supply risk drives present$/i, 'Medium supply risk');
+      .replace(/^Existing server\s+—\s+/i, '');
   }
 
   // === REFRESH ALL PANELS ===
@@ -902,11 +882,6 @@ export class UI {
       : `${stats.usableTB.toFixed(1)} TB usable from ${stats.rawTB.toFixed(1)} TB raw`;
     const capColor = workload?.requirements?.minUsableTB && stats.usableTB < workload.requirements.minUsableTB ? '#f59e0b' : '#4fc3f7';
 
-    const riskMeta = stats.supplyRiskScore < 30
-      ? { text: 'text-green-400', color: '#22c55e', label: 'LOW' }
-      : stats.supplyRiskScore < 60
-        ? { text: 'text-yellow-400', color: '#f59e0b', label: 'MED' }
-        : { text: 'text-red-400', color: '#ef4444', label: 'HIGH' };
     const raidMeta = stats.raidValid
       ? { text: 'text-green-400', color: '#22c55e', label: 'VALID' }
       : { text: 'text-red-400', color: '#ef4444', label: stats.raidError || 'INVALID' };
@@ -941,20 +916,13 @@ export class UI {
       { label: `Expansion: $${stats.moduleCost.toLocaleString()}`, value: stats.moduleCost, color: '#22c55e' },
     ];
 
-    const vendorColors = ['#4fc3f7', '#8b5cf6', '#22c55e', '#f97316', '#64748b'];
     const vendorEntries = Object.entries(stats.vendorConcentration).sort((a, b) => b[1] - a[1]);
-    const vendorSegments = vendorEntries.map(([vendor, count], i) => ({
-      label: `${vendor}: ${((count / stats.driveCount) * 100).toFixed(0)}%`,
-      value: count,
-      color: vendorColors[i % vendorColors.length],
-    }));
     const topVendor = vendorEntries[0]
       ? `${vendorEntries[0][0]} ${((vendorEntries[0][1] / stats.driveCount) * 100).toFixed(0)}%`
       : 'empty';
     const bayFillPct = this.state.bays.length ? (stats.driveCount / this.state.bays.length) * 100 : 0;
     const rebuildTone = stats.rebuildWarning ? '#ef4444' : stats.rebuildDegraded ? '#f59e0b' : '#22c55e';
     const rebuildLabel = stats.rebuildWarning ? 'no rebuild safety' : stats.rebuildDegraded ? 'degraded window' : 'mirror copy';
-    const supplyLabel = stats.driveCount ? riskMeta.label : 'NONE';
     const enduranceYears = Number.isFinite(stats.minEnduranceYears) ? stats.minEnduranceYears : 0;
     const enduranceLabel = stats.workloadWriteTBPerDay
       ? `${stats.minEnduranceYears.toFixed(1)} yr`
@@ -1057,11 +1025,6 @@ export class UI {
       iops: this._term(`${this._compactNumber(stats.lowQueueReadIOPS, 0)} IOPS`, 'Low-queue-depth IOPS', 'Estimated random read operations per second at app-like queue depth, not best-case vendor lab queue depth.', [
         ['Current', this._compactNumber(stats.lowQueueReadIOPS, 0)],
       ], 'compact'),
-      supply: this._term('SUPPLY', 'Supply and sourcing risk', 'A compact signal for consumer retail availability and concentration risk, separate from raw performance.', [
-        ['Score', `${stats.supplyRiskScore.toFixed(0)}/100`],
-        ['High risk', `${stats.highRiskCount}`],
-        ['Top brand', topVendor],
-      ]),
       bays: this._term('BAYS', 'Bay usage', 'How many physical drive slots are filled, with a quick hint of vendor concentration in the current build.', [
         ['Filled', `${stats.driveCount}/${this.state.bays.length}`],
         ['Top brand', topVendor],
@@ -1159,13 +1122,6 @@ export class UI {
           <div class="strip-value-sm">${stats.estimatedP99ReadMs ? stats.estimatedP99ReadMs.toFixed(1) : '0.0'} ms</div>
           ${this._meter(stats.estimatedP99ReadMs || 0, p99Target, p99Tone, 'Heuristic p99 read latency class')}
           <div class="stat-sub text-gray-500">${statTerms.qd} · ${statTerms.iops}</div>
-        </div>
-
-        <div class="strip-card">
-          <div class="stat-label">${statTerms.supply}</div>
-          <div class="strip-value-sm ${stats.driveCount ? riskMeta.text : 'text-gray-500'}">${stats.supplyRiskScore.toFixed(0)}/100</div>
-          ${this._meterPercent(stats.supplyRiskScore, stats.driveCount ? riskMeta.color : '#64748b', `${supplyLabel} supply risk`)}
-          <div class="stat-sub text-gray-500">${supplyLabel}${stats.highRiskCount ? ` · ${stats.highRiskCount} high` : ''}</div>
         </div>
 
         <div class="strip-card">
@@ -1405,7 +1361,6 @@ export class UI {
       return;
     }
 
-    const risk = this._riskTone(drive.supplyRisk);
     const read = drive.seqReadMBs >= 1000 ? `${(drive.seqReadMBs / 1000).toFixed(1)} GB/s` : `${drive.seqReadMBs} MB/s`;
     const write = drive.seqWriteMBs >= 1000 ? `${(drive.seqWriteMBs / 1000).toFixed(1)} GB/s` : `${drive.seqWriteMBs} MB/s`;
     const iface = drive.interface === 'SATA III' ? 'SATA' : drive.interface.replace('NVMe PCIe ', 'Gen');
@@ -1429,9 +1384,8 @@ export class UI {
             <div class="text-xs font-mono text-gray-200 font-bold truncate">${this._escapeHtml(displayName)}</div>
             <div class="text-xs font-mono text-gray-600 truncate">${this._escapeHtml(bayLabel)} · ${this._escapeHtml(capacityLabel)} · ${this._escapeHtml(drive.formFactor)}</div>
           </div>
-          <span class="status-pill ${risk.text}" title="${this._escapeHtml(drive.supplyNote)}">${risk.label}</span>
         </div>
-        <div class="drive-token-strip" title="${this._escapeHtml(drive.supplyNote)}">
+        <div class="drive-token-strip">
           ${this._chip('NAND', `${drive.nandType} · ${drive.nandVendor}`, drive.nandType === 'QLC' ? '#f59e0b' : drive.nandType === 'SLC' ? '#22c55e' : '#4fc3f7')}
           ${this._chip('Ctrl', controller, '#f97316', drive.controller)}
           ${this._chip('', iface, iface === 'SATA' ? '#3b82f6' : '#a855f7')}

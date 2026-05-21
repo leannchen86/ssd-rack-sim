@@ -1,9 +1,9 @@
 // app.js — Main entry point
 // Loads data, wires state/renderer/UI/insights, runs render loop
-import { createState, computeStats, EventBus } from './state.js?v=35';
-import { RackRenderer } from './renderer.js?v=35';
-import { UI } from './ui.js?v=35';
-import { generateInsights, computeWorkloadFitness } from './insights.js?v=35';
+import { createState, computeStats, EventBus } from './state.js?v=39';
+import { RackRenderer } from './renderer.js?v=39';
+import { UI } from './ui.js?v=39';
+import { generateInsights, computeWorkloadFitness } from './insights.js?v=39';
 
 function interfaceCompatible(driveIf, bayIf) {
   if (driveIf === bayIf) return true;
@@ -137,11 +137,17 @@ async function main() {
     const bay = bayAtClientPoint(e.clientX, e.clientY);
     if (bay !== state.hoveredBay) state.hoveredBay = bay;
     canvas.style.cursor = bay >= 0 ? 'pointer' : 'default';
+    if (!state.dragDrive && bay >= 0 && state.bays[bay]?.drive) {
+      ui.showDriveHover(state.bays[bay].drive, state.bays[bay], e.clientX, e.clientY);
+    } else {
+      ui.hideDriveHover();
+    }
   });
 
   canvas.addEventListener('mouseleave', () => {
     state.hoveredBay = -1;
     canvas.style.cursor = 'default';
+    ui.hideDriveHover();
   });
 
   canvas.addEventListener('click', (e) => {
@@ -152,6 +158,7 @@ async function main() {
     } else {
       state.selectedBay = -1;
       ui.showDriveInfo(null);
+      ui.hideDriveHover();
     }
     EventBus.emit('bay:select');
   });
@@ -163,6 +170,7 @@ async function main() {
       state.bays[bay].drive = null;
       notifyBuildChanged();
       ui.showDriveInfo(null);
+      ui.hideDriveHover();
     }
   });
 
@@ -170,6 +178,7 @@ async function main() {
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
     state.hoveredBay = bayAtClientPoint(e.clientX, e.clientY);
+    ui.hideDriveHover();
   });
 
   canvas.addEventListener('drop', (e) => {
@@ -179,10 +188,14 @@ async function main() {
       e.dataTransfer?.getData('text/plain') ||
       '';
     const drive = drives.find(d => d.id === driveId) || state.dragDrive;
+    ui.hideDriveHover();
     placeDriveFromPoint(drive, e.clientX, e.clientY);
   });
 
-  canvas.addEventListener('dragleave', () => { state.hoveredBay = -1; });
+  canvas.addEventListener('dragleave', () => {
+    state.hoveredBay = -1;
+    ui.hideDriveHover();
+  });
 
   function updatePaletteDrag(e) {
     if (!state.dragDrive || !state.dragStart) return;
@@ -199,6 +212,7 @@ async function main() {
     state.dragDrive = null;
     state.dragStart = null;
     state.paletteDragging = false;
+    ui.hideDriveHover();
   }
 
   document.addEventListener('mousemove', updatePaletteDrag);
@@ -226,6 +240,7 @@ async function main() {
     state.dragStart = null;
     state.paletteDragging = false;
     state.hoveredBay = -1;
+    ui.hideDriveHover();
   }, true);
 
   // === Render loop ===

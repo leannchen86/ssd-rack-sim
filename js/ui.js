@@ -1,6 +1,6 @@
 // ui.js — DOM-based UI panels
 // Server selector, bay config, workload, RAID, drive palette, stats, insights, drive info
-import { EventBus, RAID_MODES, buildBays } from './state.js?v=35';
+import { EventBus, RAID_MODES, buildBays } from './state.js?v=39';
 
 // NVMe is backwards compatible — PCIe 4 drives work in PCIe 5 bays
 function interfaceCompatible(driveIf, bayIf) {
@@ -46,9 +46,11 @@ export class UI {
       fitnessPanel: document.getElementById('fitness-panel'),
       insightsPanel: document.getElementById('insights-panel'),
       driveInfo: document.getElementById('drive-info'),
+      driveHover: document.getElementById('drive-hover-card'),
       fillAll: document.getElementById('fill-all-btn'),
       clearAll: document.getElementById('clear-all-btn'),
     };
+    this.hoverDriveKey = null;
 
     this._initServerSelect();
     this._initBayConfigSelect();
@@ -60,6 +62,7 @@ export class UI {
     this._initFillControls();
     this._initButtons();
     this._initDrivePalette();
+    this._initHoverDismissal();
 
     EventBus.on('state:change', () => this.refresh());
     EventBus.on('bay:update', () => this.refresh());
@@ -238,6 +241,7 @@ export class UI {
   // === EXPANSION ===
   _initExpansionSelect() {
     const sel = this.els.expansionSelect;
+    if (!sel) return;
     sel.innerHTML = `
       <option value="none">No expansion</option>
       <option value="nvme-card">Add NVMe PCIe card (+16 M.2 slots)</option>
@@ -498,6 +502,7 @@ export class UI {
 
   _updateModuleInfo() {
     const el = this.els.moduleInfo;
+    if (!el) return;
     if (this.state.modules.length === 0) {
       if (!this.state.server) {
         el.textContent = 'Select a server to see compatible expansion options.';
@@ -524,6 +529,15 @@ export class UI {
 
   _initDrivePalette() {
     this._renderDrivePalette(this._retailConsumerDrives());
+  }
+
+  _initHoverDismissal() {
+    document.addEventListener('mousemove', (e) => {
+      const target = e.target;
+      if (target instanceof Element && (target.closest('.drive-card') || target.id === 'rack-canvas')) return;
+      this.hideDriveHover();
+    });
+    document.addEventListener('scroll', () => this.hideDriveHover(), true);
   }
 
   _updateDrivePaletteFilter() {
@@ -626,22 +640,35 @@ export class UI {
 
     card.append(mini, info);
 
+    card.addEventListener('mouseenter', (e) => {
+      if (this.state.dragDrive) return;
+      this.showDriveHover(drive, null, e.clientX, e.clientY);
+    });
+    card.addEventListener('mousemove', (e) => {
+      if (this.state.dragDrive) return;
+      this.showDriveHover(drive, null, e.clientX, e.clientY);
+    });
+    card.addEventListener('mouseleave', () => this.hideDriveHover());
+
     if (!disabled) {
       card.draggable = true;
       card.classList.add('can-drag');
       card.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
+        this.hideDriveHover();
         this.state.dragDrive = drive;
         this.state.dragStart = { x: e.clientX, y: e.clientY };
         this.state.paletteDragging = false;
       });
       card.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
+        this.hideDriveHover();
         this.state.dragDrive = drive;
         this.state.dragStart = { x: e.clientX, y: e.clientY };
         this.state.paletteDragging = false;
       });
       card.addEventListener('dragstart', (e) => {
+        this.hideDriveHover();
         this.state.dragDrive = drive;
         this.state.dragStart = { x: e.clientX, y: e.clientY };
         this.state.paletteDragging = true;
@@ -1456,20 +1483,7 @@ export class UI {
     this.showDriveInfo(bay?.drive || null, bay);
   }
 
-  showDriveInfo(drive, bay = null) {
-    const el = this.els.driveInfo;
-    if (!el) return;
-
-    if (!this.state.server) {
-      el.innerHTML = '';
-      return;
-    }
-
-    if (!drive) {
-      el.innerHTML = '';
-      return;
-    }
-
+  _driveDetailHtml(drive, bay = null) {
     const read = drive.seqReadMBs >= 1000 ? `${(drive.seqReadMBs / 1000).toFixed(1)} GB/s` : `${drive.seqReadMBs} MB/s`;
     const write = drive.seqWriteMBs >= 1000 ? `${(drive.seqWriteMBs / 1000).toFixed(1)} GB/s` : `${drive.seqWriteMBs} MB/s`;
     const iface = drive.interface === 'SATA III' ? 'SATA' : drive.interface.replace('NVMe PCIe ', 'Gen');
@@ -1478,13 +1492,13 @@ export class UI {
     const price = drive.priceUSD
       ? `$${(drive.priceUSD / drive.capacityTB).toFixed(0)}/TB`
       : 'Unpriced';
-    const bayLabel = bay ? `${bay.source === 'module' ? 'Expansion' : 'Bay'} ${bay.bayIndex + 1}` : 'Selected bay';
+    const bayLabel = bay ? `${bay.source === 'module' ? 'Expansion' : 'Bay'} ${bay.bayIndex + 1}` : 'Catalog drive';
     const controller = drive.controllerVendor || drive.controller || 'Unknown';
     const adapterNote = bay && bay.formFactor === '3.5"' && drive.formFactor === '2.5"'
       ? '<div class="text-blue-300 text-xs font-mono mt-1">Uses 2.5&quot;-to-3.5&quot; tray/carrier</div>'
       : '';
 
-    el.innerHTML = `
+    return `
       <div class="makeup-card selected-drive-card">
         <div class="drive-detail-head">
           <div class="drive-swatch" style="background:linear-gradient(160deg, ${drive.color}, #0b1020 88%)"></div>
@@ -1506,5 +1520,66 @@ export class UI {
         ${adapterNote}
       </div>
     `;
+  }
+
+  showDriveInfo(drive, bay = null) {
+    const el = this.els.driveInfo;
+    if (!el) return;
+
+    if (!this.state.server || !drive) {
+      el.innerHTML = '';
+      return;
+    }
+
+    el.innerHTML = this._driveDetailHtml(drive, bay);
+  }
+
+  showDriveHover(drive, bay = null, clientX = 0, clientY = 0) {
+    const el = this.els.driveHover;
+    if (!el || !drive) {
+      this.hideDriveHover();
+      return;
+    }
+
+    const bayKey = bay ? `${bay.source || 'bay'}-${bay.bayIndex}` : 'catalog';
+    const key = `${drive.id}|${bayKey}`;
+    if (this.hoverDriveKey !== key) {
+      el.innerHTML = this._driveDetailHtml(drive, bay);
+      this.hoverDriveKey = key;
+    }
+
+    this._positionDriveHover(clientX, clientY);
+    el.classList.add('is-visible');
+    el.setAttribute('aria-hidden', 'false');
+  }
+
+  hideDriveHover() {
+    const el = this.els.driveHover;
+    if (!el) return;
+    el.classList.remove('is-visible');
+    el.setAttribute('aria-hidden', 'true');
+    this.hoverDriveKey = null;
+  }
+
+  _positionDriveHover(clientX, clientY) {
+    const el = this.els.driveHover;
+    if (!el) return;
+
+    const margin = 12;
+    const offset = 16;
+    const width = el.offsetWidth || 320;
+    const height = el.offsetHeight || 170;
+    let left = clientX + offset;
+    let top = clientY + offset;
+
+    if (left + width + margin > window.innerWidth) {
+      left = clientX - width - offset;
+    }
+    if (top + height + margin > window.innerHeight) {
+      top = clientY - height - offset;
+    }
+
+    el.style.left = `${Math.max(margin, Math.min(left, window.innerWidth - width - margin))}px`;
+    el.style.top = `${Math.max(margin, Math.min(top, window.innerHeight - height - margin))}px`;
   }
 }

@@ -502,13 +502,36 @@
       margin-bottom: 10px;
     }
 
-    #drive-info:empty,
     #fitness-panel:empty {
       display: none;
     }
 
     .selected-drive-card {
       padding: 8px;
+    }
+
+    .drive-hover-card {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 120;
+      width: min(340px, calc(100vw - 24px));
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(4px);
+      transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s ease;
+    }
+
+    .drive-hover-card.is-visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .drive-hover-card .makeup-card {
+      background: rgba(17, 24, 39, 0.97);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(79, 195, 247, 0.08);
     }
 
     .drive-detail-head {
@@ -697,7 +720,7 @@
 
     .issue-board {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
       gap: 6px;
     }
 
@@ -851,6 +874,14 @@
       border-color: #4a5a8c;
     }
 
+    .panel-right #stats-panel .stats-strip {
+      grid-template-columns: 1fr;
+    }
+
+    .panel-right #stats-panel .strip-card {
+      min-height: 66px;
+    }
+
     @media (max-width: 1100px) {
       .app-grid {
         grid-template-columns: 250px minmax(0, 1fr);
@@ -909,17 +940,10 @@
         <div id="network-info" class="hint mt-1"></div>
       </div>
 
-      <div class="mb-3 p-2 rounded border border-gray-800 bg-gray-900/50">
-        <div class="section-title">Expansion</div>
-        <select id="expansion-select"></select>
-        <div id="module-info" class="text-xs text-gray-500 mt-1 font-mono"></div>
-      </div>
-
       <div class="mb-2">
         <div class="section-title">Fill Bays</div>
         <select id="fill-strategy-select"></select>
         <select id="fill-drive-select" class="mt-1" style="display: none;"></select>
-        <div id="fill-strategy-info" class="hint mt-1"></div>
       </div>
 
       <div class="mb-2 flex gap-2">
@@ -929,45 +953,32 @@
 
       <div class="mb-2">
         <div class="section-title">Drive Catalog</div>
-        <div class="hint mb-2">Amazon/eBay-sourceable · drop on rack to auto-place</div>
       </div>
       <div id="drive-palette" class="space-y-1"></div>
     </div>
 
-    <!-- Center Workspace: Stats + Rack View -->
+    <!-- Center Workspace: Rack View -->
     <div class="workspace">
-      <div class="telemetry-bar">
-        <div class="telemetry-head">
-          <div class="section-title mb-0">Live Stats</div>
-          <div class="text-xs text-gray-600 font-mono">updates as drives change</div>
-        </div>
-        <div id="stats-panel">
-          <div class="text-gray-600 text-xs font-mono p-2">Select a server to begin</div>
-        </div>
-      </div>
-
       <div class="canvas-container">
         <canvas id="rack-canvas"></canvas>
       </div>
     </div>
 
-    <!-- Right: Insights Panel -->
+    <!-- Right: Live Stats -->
     <div class="panel-right" style="border-left: 1px solid #1a2040;">
-      <div class="context-stack">
-        <div id="drive-info"></div>
-        <div id="fitness-panel"></div>
-      </div>
       <div class="mb-2">
         <div class="section-title flex items-center gap-2">
-          <span>Tradeoffs</span>
+          <span>Live Stats</span>
         </div>
+        <div class="text-xs text-gray-600 font-mono">updates as drives change</div>
       </div>
-      <div id="insights-panel">
-        <div class="text-xs font-mono text-gray-600 p-2">Configure a build to see tradeoff analysis</div>
+      <div id="stats-panel">
+        <div class="text-gray-600 text-xs font-mono p-2">Select a server to begin</div>
       </div>
     </div>
+    <div id="drive-hover-card" class="drive-hover-card" aria-hidden="true"></div>
   </div>
 
-  <script type="module" src="./js/app.js?v=35"></script>
+  <script type="module" src="./js/app.js?v=39"></script>
 </body>
 </html>

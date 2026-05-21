@@ -32,15 +32,22 @@ export class RackRenderer {
     this.dpr = window.devicePixelRatio || 1;
     this.bayRects = [];
     this.pulsePhase = 0;
-    this._resize();
-    this._resizeHandler = () => this._resize();
+    this._resize(true);
+    this._resizeHandler = () => this._resize(true);
     window.addEventListener('resize', this._resizeHandler);
+    if ('ResizeObserver' in window && this.canvas.parentElement) {
+      this._resizeObserver = new ResizeObserver(() => this._resize());
+      this._resizeObserver.observe(this.canvas.parentElement);
+    }
   }
 
-  _resize() {
+  _resize(force = false) {
     const parent = this.canvas.parentElement;
     const w = parent.clientWidth;
     const h = parent.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    if (!force && w === this.width && h === this.height && dpr === this.dpr) return;
+    this.dpr = dpr;
     this.canvas.width = w * this.dpr;
     this.canvas.height = h * this.dpr;
     this.canvas.style.width = w + 'px';
@@ -58,6 +65,7 @@ export class RackRenderer {
   }
 
   render(state, stats) {
+    this._resize();
     const ctx = this.ctx;
     const W = this.width;
     const H = this.height;
@@ -83,7 +91,8 @@ export class RackRenderer {
     // the full canvas height. A 2U server should read as a wide appliance;
     // tower/4U systems are allowed to occupy more vertical space.
     const availableH = H - padding * 2 - 60;
-    const chassisTarget = this._targetSectionHeight(state.server, W - padding * 2, H);
+    const verticalScale = this._rackVerticalScale(state.server, H);
+    const chassisTarget = this._targetSectionHeight(state.server, W - padding * 2, H) * verticalScale;
     const chassisWidth = isTower
       ? Math.min(W - padding * 2, Math.max(440, Math.min(660, (W - padding * 2) * 0.55)))
       : W - padding * 2;
@@ -92,12 +101,13 @@ export class RackRenderer {
       ? Math.min(chassisTarget, availableH * 0.62)
       : Math.min(chassisTarget, availableH);
     const moduleHeight = hasModules
-      ? Math.min(220, Math.max(150, availableH - chassisHeight - padding))
+      ? Math.min(220 * verticalScale, Math.max(130, availableH - chassisHeight - padding))
       : 0;
     const stackHeight = chassisHeight + (hasModules ? padding + moduleHeight : 0);
 
     // === CHASSIS SECTION ===
-    const chassisY = Math.max(54, (H - stackHeight) * 0.43);
+    const yBias = verticalScale < 1 ? 0.22 : 0.43;
+    const chassisY = Math.max(38, (H - stackHeight) * yBias);
     if (isTower) {
       this._drawTowerSection(ctx, chassisX, chassisY, chassisWidth, chassisHeight,
         state.server.name, `${chassisBays.filter(b => b.drive).length}/${chassisBays.length} bays`
@@ -156,6 +166,14 @@ export class RackRenderer {
     }
 
     return Math.min(360, Math.max(240, availableW * 0.44));
+  }
+
+  _rackVerticalScale(server, H) {
+    if (this._isTower(server)) return 1;
+    if (H < 620) return 0.80;
+    if (H < 720) return 0.84;
+    if (H < 820) return 0.90;
+    return 1;
   }
 
   _isTower(server) {

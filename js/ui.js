@@ -1,6 +1,6 @@
 // ui.js — DOM-based UI panels
 // Server selector, bay config, workload, RAID, drive palette, stats, insights, drive info
-import { EventBus, RAID_MODES, buildBays } from './state.js?v=39';
+import { EventBus, RAID_MODES, buildBays } from './state.js?v=40';
 
 // NVMe is backwards compatible — PCIe 4 drives work in PCIe 5 bays
 function interfaceCompatible(driveIf, bayIf) {
@@ -47,11 +47,14 @@ export class UI {
       insightsPanel: document.getElementById('insights-panel'),
       driveInfo: document.getElementById('drive-info'),
       driveHover: document.getElementById('drive-hover-card'),
+      leftPanel: document.getElementById('left-panel'),
+      sidebarToggle: document.getElementById('sidebar-toggle'),
       fillAll: document.getElementById('fill-all-btn'),
       clearAll: document.getElementById('clear-all-btn'),
     };
     this.hoverDriveKey = null;
 
+    this._initSidebarToggle();
     this._initServerSelect();
     this._initBayConfigSelect();
     this._initRaidSelect();
@@ -529,6 +532,43 @@ export class UI {
 
   _initDrivePalette() {
     this._renderDrivePalette(this._retailConsumerDrives());
+  }
+
+  _initSidebarToggle() {
+    const toggle = this.els.sidebarToggle;
+    const grid = document.querySelector('.app-grid');
+    if (!toggle || !grid) return;
+
+    const storageKey = 'ssd-rack-sim.leftPanel.open';
+    let isOpen = true;
+
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored !== null) isOpen = stored === 'true';
+    } catch (_) {
+      isOpen = true;
+    }
+
+    const apply = (nextOpen) => {
+      grid.classList.toggle('sidebar-collapsed', !nextOpen);
+      toggle.setAttribute('aria-expanded', String(nextOpen));
+      toggle.setAttribute('aria-label', nextOpen ? 'Hide left panel' : 'Show left panel');
+      if (this.els.leftPanel) {
+        this.els.leftPanel.toggleAttribute('inert', !nextOpen);
+        this.els.leftPanel.setAttribute('aria-hidden', String(!nextOpen));
+      }
+    };
+
+    apply(isOpen);
+    toggle.addEventListener('click', () => {
+      const nextOpen = toggle.getAttribute('aria-expanded') !== 'true';
+      apply(nextOpen);
+      try {
+        localStorage.setItem(storageKey, String(nextOpen));
+      } catch (_) {
+        // The bookmark still works if storage is unavailable.
+      }
+    });
   }
 
   _initHoverDismissal() {

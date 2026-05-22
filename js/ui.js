@@ -1,6 +1,6 @@
 // ui.js — DOM-based UI panels
 // Server selector, bay config, workload, RAID, drive palette, stats, insights, drive info
-import { EventBus, RAID_MODES, buildBays } from './state.js?v=40';
+import { EventBus, RAID_MODES, buildBays } from './state.js?v=41';
 
 // NVMe is backwards compatible — PCIe 4 drives work in PCIe 5 bays
 function interfaceCompatible(driveIf, bayIf) {
@@ -247,7 +247,7 @@ export class UI {
     if (!sel) return;
     sel.innerHTML = `
       <option value="none">No expansion</option>
-      <option value="nvme-card">Add NVMe PCIe card (+16 M.2 slots)</option>
+      <option value="nvme-card">Add M.2 NVMe PCIe card (+16 slots)</option>
     `;
     sel.addEventListener('change', () => {
       const mod = this.state.moduleCatalog[0];
@@ -512,7 +512,9 @@ export class UI {
         el.className = 'text-xs text-gray-600 mt-1 font-mono';
       } else {
         const freeSlots = this.state.server.pcieSlotsRear?.filter(s => !s.occupied && s.type === 'x16').length || 0;
-        el.textContent = freeSlots > 0 ? `${freeSlots} free x16 slot(s) for PCIe expansion` : 'No free x16 PCIe slot';
+        el.textContent = freeSlots > 0
+          ? `M.2 NVMe requires this expansion path · ${freeSlots} free x16 slot(s)`
+          : 'No free x16 PCIe slot for M.2 NVMe expansion';
         el.className = `text-xs ${freeSlots > 0 ? 'text-gray-500' : 'text-gray-600'} mt-1 font-mono`;
       }
       return;
@@ -611,6 +613,12 @@ export class UI {
     compatible.forEach(d => container.appendChild(this._createDriveCard(d, false)));
 
     if (incompatible.length > 0) {
+      if (this.state.server && this.state.modules.length === 0 && incompatible.some(d => d.formFactor === 'M.2 2280')) {
+        const note = document.createElement('div');
+        note.className = 'text-blue-300 text-xs p-2 rounded border border-blue-900/60 bg-blue-950/20 font-mono leading-relaxed mt-2';
+        note.textContent = 'M.2 NVMe SSDs need Expansion > Add M.2 NVMe PCIe card; the native server bays shown here are not M.2 slots.';
+        container.appendChild(note);
+      }
       const div = document.createElement('div');
       div.className = 'text-gray-600 text-xs px-2 py-1 border-t border-gray-800 mt-2 pt-2 font-mono';
       div.textContent = 'INCOMPATIBLE WITH CONFIG';
